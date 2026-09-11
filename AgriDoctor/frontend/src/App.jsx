@@ -232,7 +232,7 @@ function DashboardPage() {
   const [weatherResult, setWeatherResult] = useState(null);
   const [scanRecommendation, setScanRecommendation] = useState(null);
   const [diseaseFile, setDiseaseFile] = useState(null);
-  const [diseaseCrop, setDiseaseCrop] = useState('Groundnut');
+  const [diseaseError, setDiseaseError] = useState('');
   const [error, setError] = useState('');
   const [loadingAction, setLoadingAction] = useState('');
 
@@ -298,19 +298,21 @@ function DashboardPage() {
   const handleDiseaseSubmit = async (event) => {
     event.preventDefault();
     if (!diseaseFile) {
-      setError('Please choose an image before scanning.');
+      setDiseaseError('Please choose an image before scanning.');
       return;
     }
 
     setError('');
+    setDiseaseError('');
     setLoadingAction('disease');
 
     try {
       const formData = new FormData();
       formData.append('image', diseaseFile);
-      formData.append('crop', diseaseCrop);
       const response = await api.post('/disease/predict', formData, {
-        headers: { 'Content-Type': 'multipart/form-data' },
+        headers: {
+          'Content-Type': 'multipart/form-data',
+        },
       });
       const prediction = response.data.result;
       setDiseaseResult(prediction);
@@ -342,7 +344,14 @@ function DashboardPage() {
       setScanRecommendation(recommendationResponse.data.recommendations?.[0] || null);
       setDashboard((current) => ({ ...current, weather }));
     } catch (err) {
-      setError(err.response?.data?.error || 'Disease scan failed.');
+      const apiCode = err.response?.data?.code;
+      const message = apiCode === 'MODEL_NOT_CONFIGURED'
+        ? 'Disease model is not installed. Add disease_model.keras to backend/ml_models/disease_model, then restart the backend.'
+        : err.response?.data?.error
+        || err.response?.data?.message
+        || (err.response ? `Disease scan failed (HTTP ${err.response.status}).` : 'Cannot reach the disease service.');
+      setDiseaseError(message);
+      setError(message);
     } finally {
       setLoadingAction('');
     }
@@ -493,16 +502,13 @@ function DashboardPage() {
 
         <form className="card form-card" onSubmit={handleDiseaseSubmit}>
           <h3>Disease scanner</h3>
-          <label>
-            Crop in the image
-            <select value={diseaseCrop} onChange={(event) => setDiseaseCrop(event.target.value)}>
-              <option>Groundnut</option>
-              <option>Tomato</option>
-              <option>Potato</option>
-            </select>
-          </label>
+          <p>Upload a clear leaf image. The trained model identifies the crop and disease automatically.</p>
           <CameraScanner
-            onCapture={(blob) => setDiseaseFile(new File([blob], 'leaf-capture.jpg', { type: 'image/jpeg' }))}
+            onCapture={(blob) => {
+              setDiseaseError('');
+              setDiseaseResult(null);
+              setDiseaseFile(new File([blob], 'leaf-capture.jpg', { type: 'image/jpeg' }));
+            }}
           />
           <label>
             Capture or upload a crop image
@@ -510,9 +516,15 @@ function DashboardPage() {
               type="file"
               accept="image/*"
               capture="environment"
-              onChange={(event) => setDiseaseFile(event.target.files?.[0] || null)}
+              onChange={(event) => {
+                setDiseaseError('');
+                setDiseaseResult(null);
+                setDiseaseFile(event.target.files?.[0] || null);
+              }}
             />
           </label>
+          {diseaseFile && <small>Selected image: {diseaseFile.name}</small>}
+          {diseaseError && <div className="error-box">{diseaseError}</div>}
           <button className="primary-button" type="submit" disabled={loadingAction === 'disease'}>{loadingAction === 'disease' ? 'Scanning...' : 'Scan disease'}</button>
           {diseaseResult && (
             <div className="result-box">
@@ -677,19 +689,19 @@ function AdminPage() {
 }
 
 function AppShell() {
-  const { user, logout } = useAuth();
+  const { user, token, logout } = useAuth();
 
   return (
     <BrowserRouter>
       <Navbar user={user} onLogout={logout} />
       <Routes>
         <Route path="/" element={<LandingPage />} />
-        <Route path="/login" element={user ? <Navigate to="/dashboard" replace /> : <LoginPage />} />
-        <Route path="/register" element={user ? <Navigate to="/dashboard" replace /> : <RegisterPage />} />
+        <Route path="/login" element={user && token ? <Navigate to="/dashboard" replace /> : <LoginPage />} />
+        <Route path="/register" element={user && token ? <Navigate to="/dashboard" replace /> : <RegisterPage />} />
         <Route
           path="/dashboard"
           element={
-            <ProtectedRoute user={user}>
+            <ProtectedRoute user={user} token={token}>
               <DashboardPage />
             </ProtectedRoute>
           }
@@ -697,7 +709,7 @@ function AppShell() {
         <Route
           path="/admin"
           element={
-            <ProtectedRoute user={user} role="admin">
+            <ProtectedRoute user={user} token={token} role="admin">
               <AdminPage />
             </ProtectedRoute>
           }

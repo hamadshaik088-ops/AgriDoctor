@@ -1,7 +1,7 @@
 import { Navigate } from 'react-router-dom';
 
-export default function ProtectedRoute({ children, user, role }) {
-  if (!user) {
+export default function ProtectedRoute({ children, user, token, role }) {
+  if (!user || !token) {
     return <Navigate to="/login" replace />;
   }
   if (role && user.role !== role) {

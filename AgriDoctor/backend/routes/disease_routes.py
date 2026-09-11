@@ -18,9 +18,6 @@ def predict():
     file = request.files["image"]
     if not file.filename:
         return jsonify({"error": "Empty image file"}), 400
-    crop = request.form.get("crop", "").strip()
-    if not crop:
-        return jsonify({"error": "Select the crop before scanning the image."}), 400
     try:
         filepath = save_uploaded_image(file)
     except ValueError as exc:
@@ -29,7 +26,12 @@ def predict():
     try:
         prediction = predict_disease_from_image(filepath)
     except RuntimeError as exc:
-        return jsonify({"error": str(exc)}), 503
+        error_code = "MODEL_NOT_CONFIGURED" if "No trained disease model" in str(exc) else "MODEL_INFERENCE_FAILED"
+        return jsonify({
+            "error": str(exc),
+            "code": error_code,
+            "message": "Automatic crop and disease prediction is unavailable for this image."
+        }), 503
     user = User.query.get(get_jwt_identity())
     farmer = user.farmer_profile
     if not farmer:

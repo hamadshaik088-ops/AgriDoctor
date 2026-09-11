@@ -54,6 +54,49 @@ The frontend uses `http://localhost:5000/api` by default. If port 5173 is busy, 
 ## Environment variables
 Backend uses .env for secrets. Frontend uses VITE_API_BASE_URL in frontend/.env.
 
+### Disease model
+The scanner identifies the crop and disease from the image; it does not use a manually selected crop. Add the trained Keras model at:
+
+```text
+backend/ml_models/disease_model/disease_model.keras
+```
+
+Its output classes must match `backend/ml_models/disease_model/class_names.json` in the same order. The model must accept RGB images in `(batch, height, width, 3)` format and return one probability per class. Without this model, the upload works but the API correctly refuses to invent a diagnosis.
+
+To train the model, create one folder per class under a separate dataset directory. Each folder must contain many labelled images:
+
+```text
+dataset/
+	Tomato___Early_Blight/
+	Tomato___Late_Blight/
+	Tomato___Healthy/
+	Potato___Early_Blight/
+	Potato___Late_Blight/
+	Groundnut___Tikka_Leaf_Spot/
+	Groundnut___Rust/
+	Groundnut___Healthy/
+```
+
+Install the training dependencies from `backend/training_requirements.txt`, then run:
+
+```powershell
+cd backend
+..\.venv-training\Scripts\Activate.ps1
+uv pip install --python .venv-training\Scripts\python.exe -r training_requirements.txt
+python ml_models/disease_model/train_disease_model.py --dataset C:\path\to\dataset --output ml_models/disease_model/disease_model.keras
+```
+
+Training uses Python 3.12 because TensorFlow is not available for the project's Python 3.14 runtime. The separate `.venv-training` environment does not affect the Flask runtime environment.
+
+Because the scanner loads TensorFlow at runtime, start Flask with the same environment after training:
+
+```powershell
+cd backend
+.\.venv-training\Scripts\python.exe app.py
+```
+
+The script refuses to train when any required class is missing and writes the model consumed by the scanner.
+
 ## Notes
 - Real ML models and treatment databases are not shipped; the app is structured for production use and clearly marks demo behavior until trained models and verified data are added.
 - Camera access on production requires HTTPS.

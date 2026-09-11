@@ -18,5 +18,5 @@ class Config:
     MAX_CONTENT_LENGTH = int(os.getenv("MAX_CONTENT_LENGTH", 16 * 1024 * 1024))
     ALLOWED_EXTENSIONS = {ext.strip().lower() for ext in os.getenv("ALLOWED_EXTENSIONS", "jpg,jpeg,png,webp").split(",") if ext.strip()}
     WEATHER_API_KEY = os.getenv("WEATHER_API_KEY", "")
-    MODEL_CONFIDENCE_THRESHOLD = float(os.getenv("MODEL_CONFIDENCE_THRESHOLD", "0.75"))
+    MODEL_CONFIDENCE_THRESHOLD = float(os.getenv("MODEL_CONFIDENCE_THRESHOLD", "0.35"))
     DISEASE_MODEL_PATH = os.getenv("DISEASE_MODEL_PATH", str(BASE_DIR / "ml_models" / "disease_model" / "disease_model.keras"))

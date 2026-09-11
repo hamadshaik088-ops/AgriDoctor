@@ -16,4 +16,19 @@ api.interceptors.request.use((config) => {
   return config;
 });
 
+api.interceptors.response.use(
+  (response) => response,
+  (error) => {
+    const requestUrl = error.config?.url || '';
+    if (error.response?.status === 401 && !requestUrl.includes('/auth/')) {
+      localStorage.removeItem('user');
+      localStorage.removeItem('token');
+      if (window.location.pathname !== '/login') {
+        window.location.assign('/login?session=expired');
+      }
+    }
+    return Promise.reject(error);
+  },
+);
+
 export default api;

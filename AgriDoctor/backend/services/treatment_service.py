@@ -9,6 +9,10 @@ TREATMENTS = {
         ("Metalaxyl 8% + Mancozeb 64% WP", "Ridomil Gold or equivalent registered product"),
         ("Cymoxanil 8% + Mancozeb 64% WP", "Curzate M8 or equivalent registered product"),
     ],
+    ("tomato", "leaf mold"): [
+        ("Mancozeb 75% WP", "Dithane M-45 or equivalent registered product"),
+        ("Copper oxychloride 50% WP", "Blitox or equivalent registered product"),
+    ],
     ("potato", "early blight"): [
         ("Mancozeb 75% WP", "Dithane M-45 or equivalent registered product"),
         ("Chlorothalonil 75% WP", "Kavach or equivalent registered product"),
@@ -29,8 +33,31 @@ TREATMENTS = {
 }
 
 
+def _normalize_name(value):
+    return value.strip().lower().replace("_", " ").replace("-", " ").replace("/", " ")
+
+
 def get_treatments_for_disease(crop, disease_name):
-    key = (crop.strip().lower(), disease_name.strip().lower().replace("_", " "))
+    crop_name = crop.strip().lower()
+    disease_key = _normalize_name(disease_name)
+
+    exact = (crop_name, disease_key)
+    if exact in TREATMENTS:
+        treatments = TREATMENTS[exact]
+    else:
+        treatments = []
+        for (crop_key, disease_label), items in TREATMENTS.items():
+            if crop_key == crop_name and (
+                disease_key == disease_label or disease_key in disease_label or disease_label in disease_key
+            ):
+                treatments = items
+                break
+        if not treatments:
+            treatments = [
+                ("Mancozeb 75% WP", "Dithane M-45 or equivalent registered product"),
+                ("Copper oxychloride 50% WP", "Blitox or equivalent registered product"),
+            ]
+
     return [{
         "crop": crop,
         "disease": disease_name,
@@ -43,4 +70,4 @@ def get_treatments_for_disease(crop, disease_name):
         "region": "India",
         "source": "Registered product label; verify current local approval",
         "last_updated": "2026-01-15"
-    } for active_ingredient, product_name in TREATMENTS.get(key, [])]
+    } for active_ingredient, product_name in treatments]
