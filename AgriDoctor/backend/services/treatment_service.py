@@ -18,6 +18,14 @@ TREATMENTS = {
         ("Cymoxanil 8% + Mancozeb 64% WP", "Curzate M8 or equivalent registered product"),
         ("Mancozeb 75% WP", "Dithane M-45 or equivalent registered product"),
     ],
+    ("groundnut", "tikka leaf spot"): [
+        ("Mancozeb 75% WP", "Dithane M-45 or equivalent registered product"),
+        ("Chlorothalonil 75% WP", "Kavach or equivalent registered product"),
+    ],
+    ("groundnut", "rust"): [
+        ("Mancozeb 75% WP", "Dithane M-45 or equivalent registered product"),
+        ("Tebuconazole 25.9% EC", "Folicur or equivalent registered product"),
+    ],
 }
 
 

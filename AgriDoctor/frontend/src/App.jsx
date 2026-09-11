@@ -232,6 +232,7 @@ function DashboardPage() {
   const [weatherResult, setWeatherResult] = useState(null);
   const [scanRecommendation, setScanRecommendation] = useState(null);
   const [diseaseFile, setDiseaseFile] = useState(null);
+  const [diseaseCrop, setDiseaseCrop] = useState('Groundnut');
   const [error, setError] = useState('');
   const [loadingAction, setLoadingAction] = useState('');
 
@@ -307,6 +308,7 @@ function DashboardPage() {
     try {
       const formData = new FormData();
       formData.append('image', diseaseFile);
+      formData.append('crop', diseaseCrop);
       const response = await api.post('/disease/predict', formData, {
         headers: { 'Content-Type': 'multipart/form-data' },
       });
@@ -491,6 +493,14 @@ function DashboardPage() {
 
         <form className="card form-card" onSubmit={handleDiseaseSubmit}>
           <h3>Disease scanner</h3>
+          <label>
+            Crop in the image
+            <select value={diseaseCrop} onChange={(event) => setDiseaseCrop(event.target.value)}>
+              <option>Groundnut</option>
+              <option>Tomato</option>
+              <option>Potato</option>
+            </select>
+          </label>
           <CameraScanner
             onCapture={(blob) => setDiseaseFile(new File([blob], 'leaf-capture.jpg', { type: 'image/jpeg' }))}
           />
