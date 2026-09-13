@@ -1,5 +1,6 @@
 from flask import Blueprint, request, jsonify
 from flask_jwt_extended import jwt_required, get_jwt_identity
+from sqlalchemy.exc import SQLAlchemyError
 from ..database.db import db
 from ..models.user import User
 from ..models.farmer import Farmer
@@ -25,6 +26,8 @@ def predict():
 
     try:
         prediction = predict_disease_from_image(filepath)
+    except (OSError, ValueError) as exc:
+        return jsonify({"error": "The uploaded file is not a valid readable image.", "message": str(exc)}), 400
     except RuntimeError as exc:
         error_code = "MODEL_NOT_CONFIGURED" if "No trained disease model" in str(exc) else "MODEL_INFERENCE_FAILED"
         return jsonify({
@@ -33,6 +36,8 @@ def predict():
             "message": "Automatic crop and disease prediction is unavailable for this image."
         }), 503
     user = User.query.get(get_jwt_identity())
+    if not user:
+        return jsonify({"error": "User not found"}), 401
     farmer = user.farmer_profile
     if not farmer:
         farmer = Farmer(user_id=user.id)
@@ -52,7 +57,14 @@ def predict():
         image_path=filepath
     )
     db.session.add(record)
-    db.session.commit()
+    try:
+        db.session.commit()
+    except SQLAlchemyError:
+        db.session.rollback()
+        return jsonify({
+            "error": "The diagnosis was generated but could not be saved.",
+            "message": "Check the database schema and connection, then try again.",
+        }), 503
 
     return jsonify({"message": "Prediction generated successfully", "result": prediction, "record_id": record.id})
 
