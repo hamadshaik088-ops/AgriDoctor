@@ -18,6 +18,7 @@ from flask_cors import CORS
 from flask_jwt_extended import JWTManager
 from .config import Config
 from .database.db import db
+from . import models
 from .routes import register_blueprints
 
 
@@ -30,6 +31,16 @@ def create_app():
     register_blueprints(app)
     with app.app_context():
         db.create_all()
+
+    @app.get("/api/health")
+    def health_check():
+        try:
+            db.session.execute(db.text("SELECT 1"))
+            return {"status": "ok", "database": "connected"}
+        except Exception:
+            db.session.rollback()
+            return {"status": "error", "database": "unavailable"}, 503
+
     return app
 
 

@@ -54,6 +54,17 @@ The frontend uses `http://localhost:5000/api` by default. If port 5173 is busy, 
 ## Environment variables
 Backend uses .env for secrets. Frontend uses VITE_API_BASE_URL in frontend/.env.
 
+For the Render backend, add a `DATABASE_URL` environment variable using the
+PostgreSQL database's **External Database URL**. Do not commit the URL or its
+password. The backend also accepts Render's legacy `postgres://` URL format.
+Set `JWT_SECRET_KEY` to a long random value and optionally set
+`JWT_ACCESS_TOKEN_EXPIRES` in seconds (the default is 86400 seconds).
+
+The backend creates these PostgreSQL tables on startup: users, farmers, farms,
+soil_records, disease_predictions, crop_recommendations, weather_records,
+notifications, diseases, and treatments. Registration and all farmer data
+endpoints use the JWT returned by `/api/auth/register` or `/api/auth/login`.
+
 ### Disease model
 The scanner identifies the crop and disease from the image; it does not use a manually selected crop. Add the trained Keras model at:
 

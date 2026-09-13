@@ -63,6 +63,48 @@ def dashboard():
     })
 
 
+@farmer_bp.route("/details", methods=["GET"])
+@jwt_required()
+def details():
+    user = User.query.get(get_jwt_identity())
+    if not user:
+        return jsonify({"error": "User not found"}), 404
+
+    farmer = user.farmer_profile
+    return jsonify({
+        "user": {
+            "id": user.id,
+            "name": user.name,
+            "email": user.email,
+            "mobile_number": user.mobile_number,
+            "role": user.role,
+            "state": user.state,
+            "district": user.district,
+            "village": user.village,
+            "farm_area": user.farm_area,
+        },
+        "farmer": {
+            "id": farmer.id,
+            "district": farmer.district,
+            "village": farmer.village,
+            "latitude": farmer.latitude,
+            "longitude": farmer.longitude,
+        } if farmer else None,
+        "farms": [{
+            "id": farm.id,
+            "farm_name": farm.farm_name,
+            "location": farm.location,
+            "state": farm.state,
+            "district": farm.district,
+            "village": farm.village,
+            "area": farm.area,
+            "soil_type": farm.soil_type,
+            "irrigation_type": farm.irrigation_type,
+            "current_crop": farm.current_crop,
+        } for farm in (farmer.farms if farmer else [])],
+    })
+
+
 @farmer_bp.route("/farm", methods=["POST"])
 @jwt_required()
 def create_farm():

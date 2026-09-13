@@ -1,4 +1,5 @@
 from flask import Blueprint, request, jsonify
+from flask_jwt_extended import jwt_required
 from ..services.weather_service import get_weather_current, get_weather_forecast
 
 weather_bp = Blueprint("weather", __name__)
@@ -12,6 +13,7 @@ def coordinates_from_request():
 
 
 @weather_bp.route("/current", methods=["GET"])
+@jwt_required()
 def current():
     coordinates = coordinates_from_request()
     if coordinates is None:
@@ -21,6 +23,7 @@ def current():
 
 
 @weather_bp.route("/forecast", methods=["GET"])
+@jwt_required()
 def forecast():
     coordinates = coordinates_from_request()
     if coordinates is None:
