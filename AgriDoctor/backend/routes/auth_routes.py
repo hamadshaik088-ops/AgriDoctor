@@ -12,11 +12,13 @@ auth_bp = Blueprint("auth", __name__)
 @auth_bp.route("/register", methods=["POST"])
 def register():
     data = request.get_json(silent=True) or {}
+    email = str(data.get("email", "")).strip().lower()
+    mobile_number = str(data.get("mobile_number", "")).strip()
     required = ["name", "mobile_number", "email", "password", "state", "district", "village", "farm_area"]
     missing = [field for field in required if data.get(field) in (None, "")]
     if missing:
         return error_response(f"Missing required fields: {', '.join(missing)}")
-    if not validate_email(data["email"]):
+    if not validate_email(email):
         return error_response("Invalid email format")
     if len(str(data["password"])) < 8:
         return error_response("Password must be at least 8 characters")
@@ -26,27 +28,26 @@ def register():
         return error_response("Farm area must be a valid number")
     if farm_area < 0:
         return error_response("Farm area cannot be negative")
-    if User.query.filter_by(email=data["email"]).first():
+    if User.query.filter_by(email=email).first():
         return error_response("Email already registered", 409)
-    if User.query.filter_by(mobile_number=data["mobile_number"]).first():
+    if User.query.filter_by(mobile_number=mobile_number).first():
         return error_response("Mobile number already registered", 409)
 
     user = User(
         name=data["name"],
-        email=data["email"],
-        mobile_number=data["mobile_number"],
+        email=email,
+        mobile_number=mobile_number,
         state=data.get("state"),
         district=data.get("district"),
         village=data.get("village"),
         farm_area=farm_area
     )
     user.set_password(data["password"])
-    db.session.add(user)
-    db.session.flush()
-
-    farmer = Farmer(user_id=user.id, district=data.get("district"), village=data.get("village"))
-    db.session.add(farmer)
     try:
+        db.session.add(user)
+        db.session.flush()
+        farmer = Farmer(user_id=user.id, district=data.get("district"), village=data.get("village"))
+        db.session.add(farmer)
         db.session.commit()
     except IntegrityError:
         db.session.rollback()
@@ -62,7 +63,7 @@ def register():
 @auth_bp.route("/login", methods=["POST"])
 def login():
     data = request.get_json(silent=True) or {}
-    email = data.get("email")
+    email = str(data.get("email", "")).strip().lower()
     password = data.get("password")
     if not email or not password:
         return error_response("Email and password are required")

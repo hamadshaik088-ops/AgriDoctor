@@ -1,4 +1,5 @@
 import os
+from uuid import uuid4
 from flask import current_app
 from werkzeug.utils import secure_filename
 
@@ -16,6 +17,7 @@ def save_uploaded_image(file_storage):
     filename = secure_filename(file_storage.filename)
     upload_dir = current_app.config.get("UPLOAD_FOLDER", "uploads")
     os.makedirs(upload_dir, exist_ok=True)
+    filename = f"{uuid4().hex}_{filename}"
     full_path = os.path.join(upload_dir, filename)
     file_storage.save(full_path)
     return full_path

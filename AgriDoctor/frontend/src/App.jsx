@@ -61,12 +61,15 @@ function LoginPage() {
     setError('');
 
     try {
-      const response = await api.post('/auth/login', form);
+      const response = await api.post('/auth/login', {
+        ...form,
+        email: form.email.trim().toLowerCase(),
+      });
       const { token, user } = response.data;
       login(user, token);
       window.location.href = '/dashboard';
     } catch (err) {
-      setError(err.response?.data?.error || err.response?.data?.message || 'Login failed. Please try again.');
+      setError(err.response?.data?.error || err.response?.data?.message || 'Login failed. Register an account first or check your credentials.');
     } finally {
       setLoading(false);
     }
@@ -355,7 +358,11 @@ function DashboardPage() {
         ? 'Disease model is not installed. Add disease_model.keras to backend/ml_models/disease_model, then restart the backend.'
         : err.response?.data?.error
         || err.response?.data?.message
-        || (err.response ? `Disease scan failed (HTTP ${err.response.status}).` : 'Cannot reach the disease service.');
+        || (err.code === 'ECONNABORTED'
+          ? 'The disease service is waking up. Please try again.'
+          : err.response
+            ? `Disease scan failed (HTTP ${err.response.status}).`
+            : 'Cannot reach the disease service.');
       setDiseaseError(message);
       setError(message);
     } finally {
