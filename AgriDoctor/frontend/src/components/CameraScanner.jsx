@@ -26,7 +26,11 @@ export default function CameraScanner({ onCapture }) {
       if (videoRef.current) {
         videoRef.current.srcObject = stream;
         await videoRef.current.play();
-        setStreaming(true);
+        if (videoRef.current.readyState >= 2 && videoRef.current.videoWidth > 0) {
+          setStreaming(true);
+        } else {
+          videoRef.current.onloadedmetadata = () => setStreaming(videoRef.current.videoWidth > 0);
+        }
       }
     } catch (err) {
       setStreaming(false);
@@ -49,6 +53,10 @@ export default function CameraScanner({ onCapture }) {
     canvas.width = video.videoWidth;
     canvas.height = video.videoHeight;
     const ctx = canvas.getContext('2d');
+    if (!ctx) {
+      setError('Your browser cannot capture an image from the camera. Choose an image file instead.');
+      return;
+    }
     ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
     canvas.toBlob((blob) => {
       if (blob) onCapture(new File([blob], 'leaf-capture.jpg', { type: 'image/jpeg' }));

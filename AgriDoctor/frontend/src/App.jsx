@@ -510,25 +510,12 @@ function DashboardPage() {
           <h3>Disease scanner</h3>
           <p>Upload a clear leaf image. The trained model identifies the crop and disease automatically.</p>
           <CameraScanner
-            onCapture={(blob) => {
+            onCapture={(file) => {
               setDiseaseError('');
               setDiseaseResult(null);
-              setDiseaseFile(new File([blob], 'leaf-capture.jpg', { type: 'image/jpeg' }));
+              setDiseaseFile(file);
             }}
           />
-          <label>
-            Capture or upload a crop image
-            <input
-              type="file"
-              accept="image/*"
-              capture="environment"
-              onChange={(event) => {
-                setDiseaseError('');
-                setDiseaseResult(null);
-                setDiseaseFile(event.target.files?.[0] || null);
-              }}
-            />
-          </label>
           {diseaseFile && <small>Selected image: {diseaseFile.name}</small>}
           {diseaseError && <div className="error-box">{diseaseError}</div>}
           <button className="primary-button" type="submit" disabled={loadingAction === 'disease'}>{loadingAction === 'disease' ? 'Scanning...' : 'Scan disease'}</button>
@@ -631,6 +618,9 @@ function AdminPage() {
               <tr>
                 <th>Name</th>
                 <th>Email</th>
+                <th>Mobile</th>
+                <th>Location</th>
+                <th>Farm area</th>
                 <th>Role</th>
               </tr>
             </thead>
@@ -639,6 +629,9 @@ function AdminPage() {
                 <tr key={farmer.id}>
                   <td>{farmer.name}</td>
                   <td>{farmer.email}</td>
+                  <td>{farmer.mobile_number || 'Not provided'}</td>
+                  <td>{[farmer.village, farmer.district, farmer.state].filter(Boolean).join(', ') || 'Not provided'}</td>
+                  <td>{farmer.farm_area ?? 0} acres</td>
                   <td>{farmer.role}</td>
                 </tr>
               ))}

@@ -32,8 +32,19 @@ def dashboard():
 @admin_bp.route("/farmers", methods=["GET"])
 @admin_required
 def farmers():
-    rows = User.query.all()
-    return jsonify({"farmers": [{"id": f.id, "name": f.name, "email": f.email, "role": f.role} for f in rows]})
+    rows = User.query.order_by(User.created_at.desc()).all()
+    return jsonify({"farmers": [{
+        "id": user.id,
+        "name": user.name,
+        "email": user.email,
+        "mobile_number": user.mobile_number,
+        "role": user.role,
+        "state": user.state,
+        "district": user.district,
+        "village": user.village,
+        "farm_area": user.farm_area,
+        "created_at": user.created_at.isoformat() if user.created_at else None,
+    } for user in rows]})
 
 
 @admin_bp.route("/diseases", methods=["GET"])
