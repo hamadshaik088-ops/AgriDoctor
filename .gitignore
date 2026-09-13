@@ -1,2 +1,39 @@
+# Environment and secret files
+**/.env
+**/.env.*
+!**/.env.example
+!**/.env.template
+*.pem
+*.key
+*.crt
+*.p12
+*.pfx
+**/credentials*.json
+**/*service-account*.json
+**/*secret*.json
+**/.npmrc
+
+# Local databases and runtime state
 *.db
-backend/instance/
+*.db-*
+*.sqlite
+*.sqlite3
+**/instance/
+
+# Frontend dependencies and build output
+**/node_modules/
+**/dist/
+
+# Logs, test output, and local tooling caches
+*.log
+coverage/
+.coverage
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.venv/
+venv/
+
+# Runtime-generated backend files
+**/uploads/
+**/__pycache__/
