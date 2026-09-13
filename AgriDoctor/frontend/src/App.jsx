@@ -137,7 +137,13 @@ function RegisterPage() {
       login(user, token);
       window.location.href = '/';
     } catch (err) {
-      setError(err.response?.data?.error || err.response?.data?.message || 'Registration failed.');
+      setError(
+        err.response?.data?.error
+        || err.response?.data?.message
+        || (err.code === 'ECONNABORTED'
+          ? 'The server is waking up. Please try registration again in a moment.'
+          : 'Unable to connect to the registration server.'),
+      );
     } finally {
       setLoading(false);
     }

@@ -27,10 +27,32 @@ def create_app():
     app.config.from_object(Config)
     CORS(app, resources={r"/api/*": {"origins": "*"}})
     jwt = JWTManager(app)
+
+    @jwt.unauthorized_loader
+    def missing_token(error):
+        return {"error": "Authentication required", "message": "Sign in and send a Bearer JWT token."}, 401
+
+    @jwt.invalid_token_loader
+    def invalid_token(error):
+        return {"error": "Invalid authentication token", "message": "Sign in again to get a valid token."}, 401
+
+    @jwt.expired_token_loader
+    def expired_token(jwt_header, jwt_payload):
+        return {"error": "Authentication token expired", "message": "Sign in again to continue."}, 401
+
     db.init_app(app)
     register_blueprints(app)
     with app.app_context():
         db.create_all()
+
+    @app.get("/")
+    def service_info():
+        return {
+            "name": "AgriDoctor API",
+            "status": "running",
+            "health": "/api/health",
+            "message": "Use the frontend or send a JWT Bearer token to protected API endpoints.",
+        }
 
     @app.get("/api/health")
     def health_check():
