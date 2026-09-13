@@ -9,4 +9,3 @@ Werkzeug
 requests
 numpy
 Pillow
-tensorflow

@@ -125,4 +125,5 @@ The script refuses to train when any required class is missing and writes the mo
 
 ## Notes
 - Real ML models and treatment databases are not shipped; the app is structured for production use and clearly marks demo behavior until trained models and verified data are added.
+- TensorFlow is intentionally excluded from the Render runtime requirements because Render's default Python 3.14 runtime does not provide a compatible TensorFlow wheel. The API uses the documented Pillow/NumPy fallback until a model is deployed. Install TensorFlow only from `training_requirements.txt` in the separate Python 3.12 training environment.
 - Camera access on production requires HTTPS.
