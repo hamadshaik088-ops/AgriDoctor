@@ -1,0 +1,17 @@
+services:
+  - type: web
+    name: agridoctor-api
+    runtime: python
+    rootDir: backend
+    buildCommand: pip install -r requirements.txt
+    startCommand: gunicorn --bind 0.0.0.0:$PORT app:app
+    healthCheckPath: /api/health
+    envVars:
+      - key: DATABASE_URL
+        sync: false
+      - key: JWT_SECRET_KEY
+        sync: false
+      - key: JWT_ACCESS_TOKEN_EXPIRES
+        value: "86400"
+      - key: FLASK_DEBUG
+        value: "0"

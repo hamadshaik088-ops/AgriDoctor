@@ -44,7 +44,13 @@ environment variable to use another available port.
 For Render, use this start command from the repository root:
 
 ```text
-gunicorn --chdir backend app:app
+gunicorn --chdir backend --bind 0.0.0.0:$PORT app:app
+```
+
+If the Render service root directory is set to `backend`, use:
+
+```text
+gunicorn --bind 0.0.0.0:$PORT app:app
 ```
 
 On Windows, use `python` after activating `.venv`; `py` can bypass the activated environment.
