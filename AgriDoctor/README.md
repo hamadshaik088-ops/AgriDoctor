@@ -38,6 +38,15 @@ python -m pip install -r requirements.txt
 python run.py
 ```
 
+The local backend runs on `http://localhost:5001` by default. Set the `PORT`
+environment variable to use another available port.
+
+For Render, use this start command from the repository root:
+
+```text
+gunicorn --chdir backend app:app
+```
+
 On Windows, use `python` after activating `.venv`; `py` can bypass the activated environment.
 
 ### Frontend
