@@ -3,6 +3,8 @@ from pathlib import Path
 from dotenv import load_dotenv
 
 BASE_DIR = Path(__file__).resolve().parent
+INSTANCE_DIR = BASE_DIR / "instance"
+INSTANCE_DIR.mkdir(parents=True, exist_ok=True)
 load_dotenv(BASE_DIR / ".env")
 
 
@@ -10,11 +12,11 @@ class Config:
     SECRET_KEY = os.getenv("SECRET_KEY", "dev-secret")
     JWT_SECRET_KEY = os.getenv("JWT_SECRET_KEY", "dev-jwt-secret")
     JWT_ACCESS_TOKEN_EXPIRES = int(os.getenv("JWT_ACCESS_TOKEN_EXPIRES", "86400"))
-    database_url = os.getenv("DATABASE_URL", "sqlite:///agridoc_dev.db")
+    database_url = (os.getenv("DATABASE_URL") or "sqlite:///agridoc_dev.db").strip()
     if database_url.startswith("postgres://"):
         database_url = database_url.replace("postgres://", "postgresql://", 1)
     if database_url == "sqlite:///agridoc_dev.db":
-        database_url = f"sqlite:///{(BASE_DIR / 'instance' / 'agridoc_dev.db').as_posix()}"
+        database_url = f"sqlite:///{(INSTANCE_DIR / 'agridoc_dev.db').as_posix()}"
     SQLALCHEMY_DATABASE_URI = database_url
     SQLALCHEMY_TRACK_MODIFICATIONS = False
     UPLOAD_FOLDER = os.getenv("UPLOAD_FOLDER", str(BASE_DIR / "uploads"))
