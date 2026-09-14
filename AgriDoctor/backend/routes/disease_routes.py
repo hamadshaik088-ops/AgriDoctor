@@ -29,7 +29,7 @@ def predict():
     except (OSError, ValueError) as exc:
         return jsonify({"error": "The uploaded file is not a valid readable image.", "message": str(exc)}), 400
     except RuntimeError as exc:
-        error_code = "MODEL_NOT_CONFIGURED" if "No trained disease model" in str(exc) else "MODEL_INFERENCE_FAILED"
+        error_code = "MODEL_NOT_CONFIGURED" if "pretrained disease model is unavailable" in str(exc) else "MODEL_INFERENCE_FAILED"
         return jsonify({
             "error": str(exc),
             "code": error_code,

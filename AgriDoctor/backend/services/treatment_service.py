@@ -22,6 +22,63 @@ TREATMENTS = {
         ("Cymoxanil 8% + Mancozeb 64% WP", "Curzate M8 or equivalent registered product"),
         ("Mancozeb 75% WP", "Dithane M-45 or equivalent registered product"),
     ],
+    ("apple", "apple scab"): [
+        ("Mancozeb 75% WP", "Registered equivalent product"),
+        ("Captan 50% WP", "Registered equivalent product"),
+    ],
+    ("apple", "black rot"): [
+        ("Mancozeb 75% WP", "Registered equivalent product"),
+        ("Copper oxychloride 50% WP", "Registered equivalent product"),
+    ],
+    ("apple", "cedar apple rust"): [
+        ("Mancozeb 75% WP", "Registered equivalent product"),
+    ],
+    ("blueberry", "healthy"): [],
+    ("cherry (including sour)", "powdery mildew"): [
+        ("Sulfur 80% WP", "Registered equivalent product"),
+    ],
+    ("corn (maize)", "cercospora leaf spot gray leaf spot"): [
+        ("Mancozeb 75% WP", "Registered equivalent product"),
+    ],
+    ("corn (maize)", "common rust"): [
+        ("Mancozeb 75% WP", "Registered equivalent product"),
+    ],
+    ("corn (maize)", "northern leaf blight"): [
+        ("Mancozeb 75% WP", "Registered equivalent product"),
+    ],
+    ("grape", "black rot"): [
+        ("Mancozeb 75% WP", "Registered equivalent product"),
+        ("Copper oxychloride 50% WP", "Registered equivalent product"),
+    ],
+    ("grape", "leaf blight (isariopsis leaf spot)"): [
+        ("Mancozeb 75% WP", "Registered equivalent product"),
+    ],
+    ("orange", "haunglongbing (citrus greening)"): [],
+    ("peach", "bacterial spot"): [
+        ("Copper oxychloride 50% WP", "Registered equivalent product"),
+    ],
+    ("pepper, bell", "bacterial spot"): [
+        ("Copper oxychloride 50% WP", "Registered equivalent product"),
+    ],
+    ("squash", "powdery mildew"): [
+        ("Sulfur 80% WP", "Registered equivalent product"),
+    ],
+    ("strawberry", "leaf scorch"): [],
+    ("tomato", "bacterial spot"): [
+        ("Copper oxychloride 50% WP", "Registered equivalent product"),
+    ],
+    ("tomato", "septoria leaf spot"): [
+        ("Mancozeb 75% WP", "Registered equivalent product"),
+        ("Chlorothalonil 75% WP", "Registered equivalent product"),
+    ],
+    ("tomato", "spider mites two spotted spider mite"): [
+        ("Abamectin 1.9% EC", "Registered equivalent product"),
+    ],
+    ("tomato", "target spot"): [
+        ("Mancozeb 75% WP", "Registered equivalent product"),
+    ],
+    ("tomato", "tomato yellow leaf curl virus"): [],
+    ("tomato", "tomato mosaic virus"): [],
     ("groundnut", "tikka leaf spot"): [
         ("Mancozeb 75% WP", "Dithane M-45 or equivalent registered product"),
         ("Chlorothalonil 75% WP", "Kavach or equivalent registered product"),
@@ -34,29 +91,26 @@ TREATMENTS = {
 
 
 def _normalize_name(value):
-    return value.strip().lower().replace("_", " ").replace("-", " ").replace("/", " ")
+    return " ".join(value.strip().lower().replace("_", " ").replace("-", " ").replace("/", " ").split())
 
 
 def get_treatments_for_disease(crop, disease_name):
-    crop_name = crop.strip().lower()
+    crop_name = _normalize_name(crop)
     disease_key = _normalize_name(disease_name)
 
     exact = (crop_name, disease_key)
     if exact in TREATMENTS:
         treatments = TREATMENTS[exact]
     else:
-        treatments = []
+        treatments = None
         for (crop_key, disease_label), items in TREATMENTS.items():
             if crop_key == crop_name and (
                 disease_key == disease_label or disease_key in disease_label or disease_label in disease_key
             ):
                 treatments = items
                 break
-        if not treatments:
-            treatments = [
-                ("Mancozeb 75% WP", "Dithane M-45 or equivalent registered product"),
-                ("Copper oxychloride 50% WP", "Blitox or equivalent registered product"),
-            ]
+        if treatments is None:
+            return []
 
     return [{
         "crop": crop,

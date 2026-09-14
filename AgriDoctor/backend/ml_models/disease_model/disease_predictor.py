@@ -1,109 +1,164 @@
-import json
-from pathlib import Path
 import os
+import base64
+from pathlib import Path
 
 
 class DiseasePredictor:
     def __init__(self):
-        self.model_dir = Path(__file__).resolve().parent
-        self.class_names = self._load_class_names()
-        self.model = self._load_model()
+        self.plant_id_api_key = os.getenv("PLANT_ID_API_KEY", "").strip()
+        self.provider = "plant_id" if self.plant_id_api_key else "huggingface"
+        self.model_id = os.getenv(
+            "DISEASE_MODEL_ID",
+            "linkanjarad/mobilenet_v2_1.0_224-plant-disease-identification",
+        )
+        self.model_load_error = None
+        self.processor, self.model, self.class_names = self._load_model() if self.provider == "huggingface" else (None, None, [])
         self.confidence_threshold = float(os.getenv("MODEL_CONFIDENCE_THRESHOLD", "0.35"))
 
     def _load_model(self):
-        model_path = Path(os.getenv("DISEASE_MODEL_PATH", self.model_dir / "disease_model.keras"))
-        if not model_path.exists():
-            return None
         try:
-            from tensorflow.keras.models import load_model
+            from transformers import AutoImageProcessor, AutoModelForImageClassification
         except ImportError:
-            return None
+            self.model_load_error = "The transformers package is not installed in the API environment."
+            return None, None, []
         try:
-            return load_model(model_path)
-        except Exception:
-            return None
+            processor = AutoImageProcessor.from_pretrained(self.model_id)
+            model = AutoModelForImageClassification.from_pretrained(self.model_id)
+            model.eval()
+            class_names = [model.config.id2label[index] for index in range(model.config.num_labels)]
+            return processor, model, class_names
+        except Exception as exc:
+            self.model_load_error = f"Could not load pretrained model '{self.model_id}': {exc}"
+            return None, None, []
 
-    def _load_class_names(self):
-        path = self.model_dir / "class_names.json"
-        if path.exists():
-            with open(path, "r", encoding="utf-8") as fh:
-                return json.load(fh)
-        return [
-            "Tomato___Early_Blight", "Tomato___Late_Blight", "Tomato___Healthy",
-            "Potato___Early_Blight", "Potato___Late_Blight", "Groundnut___Tikka_Leaf_Spot",
-            "Groundnut___Rust", "Groundnut___Healthy"
-        ]
+    def _model_unavailable(self):
+        detail = self.model_load_error or "The pretrained disease model could not be loaded."
+        raise RuntimeError(
+            "The pretrained disease model is unavailable. "
+            f"{detail} Install the API requirements and allow the model to download from Hugging Face."
+        )
 
-    def _fallback_prediction(self, image_path):
+    def _uncertain_prediction(self, confidence):
+        return {
+            "crop": "Unknown",
+            "disease": "Uncertain",
+            "confidence": f"{confidence * 100:.1f}%",
+            "severity": "Unknown",
+            "symptoms": "The model could not identify this image with enough confidence.",
+            "causes": "No cause can be determined from an uncertain prediction.",
+            "management": "Capture a clear photo of one affected leaf and consult an agricultural expert.",
+            "treatment": "Do not spray based on this result.",
+            "weather_risk": "UNKNOWN",
+            "is_demo": False,
+            "message": "The model was uncertain. No crop or disease was assigned.",
+        }
+
+    def _plant_id_prediction(self, image_path):
         try:
-            from PIL import Image
-            import numpy as np
+            import requests
         except ImportError as exc:
-            raise RuntimeError("Pillow and NumPy are required for image analysis.") from exc
+            raise RuntimeError("The requests package is required for Plant.id inference.") from exc
 
-        image = Image.open(image_path).convert("RGB")
-        arr = np.asarray(image, dtype=np.float32)
-        red = arr[:, :, 0].mean()
-        green = arr[:, :, 1].mean()
-        blue = arr[:, :, 2].mean()
+        image_data = base64.b64encode(Path(image_path).read_bytes()).decode("ascii")
+        response = requests.post(
+            "https://api.plant.id/v3/identification",
+            headers={"Api-Key": self.plant_id_api_key, "Content-Type": "application/json"},
+            json={
+                "images": [image_data],
+                "health": "all",
+                "similar_images": False,
+                "language": "en",
+                "details": ["local_name", "description", "treatment", "common_names"],
+            },
+            timeout=45,
+        )
+        if response.status_code >= 400:
+            raise RuntimeError(f"Plant.id returned HTTP {response.status_code}: {response.text[:300]}")
+        payload = response.json().get("result", {})
+        classification = payload.get("classification", {}).get("suggestions", [])
+        disease_suggestions = payload.get("disease", {}).get("suggestions", [])
+        if not classification or not disease_suggestions:
+            raise RuntimeError("Plant.id could not identify a crop and disease from this image.")
 
-        if green > red and green > blue:
-            crop = "Tomato"
-            disease = "Early blight"
-            confidence = 0.74
-        elif red > green and red > blue:
-            crop = "Potato"
-            disease = "Late blight"
-            confidence = 0.72
-        elif blue > green:
-            crop = "Groundnut"
-            disease = "Rust"
-            confidence = 0.71
-        else:
-            crop = "Tomato"
-            disease = "Leaf Mold"
-            confidence = 0.68
-
+        crop_result = max(classification, key=lambda item: item.get("probability", 0))
+        disease_result = max(disease_suggestions, key=lambda item: item.get("probability", 0))
+        crop = crop_result.get("name", "Unknown")
+        disease = disease_result.get("name", "Uncertain")
+        confidence = float(disease_result.get("probability", 0))
+        details = disease_result.get("details") or {}
+        treatment_details = details.get("treatment") or {}
+        chemical = treatment_details.get("chemical")
+        biological = treatment_details.get("biological")
+        treatments = []
+        if chemical:
+            treatments.append({
+                "crop": crop,
+                "disease": disease,
+                "treatment_category": "Chemical treatment guidance",
+                "active_ingredient": chemical,
+                "product_name": "Use a locally registered product",
+                "application_guidance": "Follow the chemical treatment guidance and the registered product label for this crop.",
+                "safety_precautions": "Verify local approval, dose, protective equipment, and pre-harvest interval before spraying.",
+                "pre_harvest_interval": "As stated on the registered product label",
+                "region": "India",
+                "source": "Plant.id expert-compiled disease treatment guidance",
+                "last_updated": "2026-01-15",
+            })
+        if biological:
+            treatments.append({
+                "crop": crop,
+                "disease": disease,
+                "treatment_category": "Biological treatment guidance",
+                "active_ingredient": biological,
+                "product_name": "Use a locally registered biological product",
+                "application_guidance": "Follow the product label and local agricultural guidance.",
+                "safety_precautions": "Verify local approval before application.",
+                "pre_harvest_interval": "As stated on the registered product label",
+                "region": "India",
+                "source": "Plant.id expert-compiled disease treatment guidance",
+                "last_updated": "2026-01-15",
+            })
+        healthy = payload.get("is_healthy", {}).get("binary", False)
         return {
             "crop": crop,
-            "disease": disease,
+            "disease": "Healthy" if healthy else disease,
             "confidence": f"{confidence * 100:.1f}%",
-            "severity": "Moderate",
-            "symptoms": "Visible leaf discoloration or spotting detected in the uploaded image.",
-            "causes": "Poor field hygiene, humidity, and stress can increase disease pressure.",
-            "management": "Use the recommended disease-specific treatment and remove heavily infected foliage.",
-            "treatment": "Follow the recommended registered product for this crop and disease.",
-            "weather_risk": "MEDIUM",
-            "is_demo": True,
-            "message": "Fallback diagnosis used because no trained model is available. Verify the final diagnosis in the field before spraying.",
+            "severity": "Healthy" if healthy else "Moderate",
+            "symptoms": "No disease symptoms detected." if healthy else details.get("description", "Visible symptoms should be confirmed in the field."),
+            "causes": "No disease causes apply to a healthy result." if healthy else "See the provider disease report and confirm in the field.",
+            "management": treatment_details.get("prevention", "Follow local agricultural guidance."),
+            "treatment": treatment_details.get("chemical") or treatment_details.get("biological") or "No treatment details were returned.",
+            "treatments": [] if healthy else treatments,
+            "weather_risk": "LOW" if healthy else "MEDIUM",
+            "is_demo": False,
+            "message": "Plant.id AI result. Verify diagnosis and product approval with a local agricultural expert before spraying.",
         }
 
     def predict(self, image_path):
-        if self.model is None:
-            return self._fallback_prediction(image_path)
+        if getattr(self, "provider", "huggingface") == "plant_id":
+            return self._plant_id_prediction(image_path)
+        if self.model is None or self.processor is None:
+            self._model_unavailable()
 
         try:
             from PIL import Image
             import numpy as np
-            import tensorflow as tf
+            import torch
         except ImportError as exc:
-            raise RuntimeError("Pillow, NumPy, and TensorFlow are required for disease model inference.") from exc
+            raise RuntimeError("Pillow, NumPy, PyTorch, and Transformers are required for disease inference.") from exc
 
-        input_shape = self.model.input_shape
-        if len(input_shape) != 4 or not input_shape[1] or not input_shape[2]:
-            raise RuntimeError("The disease model must accept images with shape (batch, height, width, channels).")
-        height, width = input_shape[1:3]
-        image = Image.open(image_path).convert("RGB").resize((width, height))
-        image_array = np.asarray(image, dtype="float32")
-        processed = tf.keras.applications.mobilenet_v2.preprocess_input(image_array[None, ...])
-        probabilities = self.model.predict(processed, verbose=0)[0]
+        image = Image.open(image_path).convert("RGB")
+        processed = self.processor(images=image, return_tensors="pt")
+        with torch.no_grad():
+            logits = self.model(**processed).logits
+        probabilities = torch.softmax(logits, dim=-1)[0].cpu().numpy()
         if len(probabilities) != len(self.class_names):
-            raise RuntimeError("The disease model output count does not match class_names.json.")
+            raise RuntimeError("The pretrained model output count does not match its label configuration.")
         class_index = int(np.argmax(probabilities))
         class_name = self.class_names[class_index]
         confidence = float(probabilities[class_index])
         if confidence < self.confidence_threshold:
-            return self._fallback_prediction(image_path)
+            return self._uncertain_prediction(confidence)
 
         if "___" in class_name:
             crop, disease = class_name.split("___", 1)

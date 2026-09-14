@@ -6,7 +6,7 @@ AgriDoctor is a mobile-first agriculture decision support platform for Indian fa
 - Farmer registration and JWT-based login
 - Farm profile management
 - Mobile camera disease scan workflow
-- AI disease prediction demo interface with clear disclaimers
+- AI disease prediction with explicit model coverage and uncertainty handling
 - Soil analysis and crop recommendation forms
 - Weather and climate-driven risk suggestions
 - Smart recommendation engine combining soil, disease, weather, and crop context
@@ -81,49 +81,28 @@ notifications, diseases, and treatments. Registration and all farmer data
 endpoints use the JWT returned by `/api/auth/register` or `/api/auth/login`.
 
 ### Disease model
-The scanner identifies the crop and disease from the image; it does not use a manually selected crop. Add the trained Keras model at:
-
-```text
-backend/ml_models/disease_model/disease_model.keras
-```
-
-Its output classes must match `backend/ml_models/disease_model/class_names.json` in the same order. The model must accept RGB images in `(batch, height, width, 3)` format and return one probability per class. Without this model, the upload works but the API correctly refuses to invent a diagnosis.
-
-To train the model, create one folder per class under a separate dataset directory. Each folder must contain many labelled images:
-
-```text
-dataset/
-	Tomato___Early_Blight/
-	Tomato___Late_Blight/
-	Tomato___Healthy/
-	Potato___Early_Blight/
-	Potato___Late_Blight/
-	Groundnut___Tikka_Leaf_Spot/
-	Groundnut___Rust/
-	Groundnut___Healthy/
-```
-
-Install the training dependencies from `backend/training_requirements.txt`, then run:
+Without a provider key, the scanner can use the pretrained Hugging Face development fallback `linkanjarad/mobilenet_v2_1.0_224-plant-disease-identification`. Install the API requirements and start Flask; Transformers downloads the model on its first prediction:
 
 ```powershell
 cd backend
-..\.venv-training\Scripts\Activate.ps1
-uv pip install --python .venv-training\Scripts\python.exe -r training_requirements.txt
-python ml_models/disease_model/train_disease_model.py --dataset C:\path\to\dataset --output ml_models/disease_model/disease_model.keras
+python -m pip install -r requirements.txt
+python app.py
 ```
 
-Training uses Python 3.12 because TensorFlow is not available for the project's Python 3.14 runtime. The separate `.venv-training` environment does not affect the Flask runtime environment.
+This model uses the PlantVillage 38-class label set. It includes tomato and potato, but not groundnut/peanut. The repository contains no locally trained weights or training dataset. Configure `DISEASE_MODEL_ID` only when selecting another compatible pretrained image-classification model.
 
-Because the scanner loads TensorFlow at runtime, start Flask with the same environment after training:
+For broad crop and disease coverage, configure the official Plant.id v3 provider instead. It supports plant health assessment across hundreds of conditions and returns disease treatment details, including chemical guidance when available:
 
 ```powershell
-cd backend
-.\.venv-training\Scripts\python.exe app.py
+$env:PLANT_ID_API_KEY = "your-api-key"
+python app.py
 ```
 
-The script refuses to train when any required class is missing and writes the model consumed by the scanner.
+The API key is read only from the environment and must not be committed. Plant.id requires an account and usage credits.
+
+Pesticide suggestions are returned only for explicit crop-disease mappings in `backend/services/treatment_service.py`. Unsupported, healthy, viral, and uncertain results return no pesticide recommendation. A genuine all-crop system still requires a verified broader disease model or separate specialist models; the available pretrained model must not be presented as groundnut or all-crop coverage.
 
 ## Notes
-- Real ML models and treatment databases are not shipped; the app is structured for production use and clearly marks demo behavior until trained models and verified data are added.
-- TensorFlow is intentionally excluded from the Render runtime requirements because Render's default Python 3.14 runtime does not provide a compatible TensorFlow wheel. The API uses the documented Pillow/NumPy fallback until a model is deployed. Install TensorFlow only from `training_requirements.txt` in the separate Python 3.12 training environment.
+- The pretrained model is PlantVillage-based and does not include groundnut/peanut. It must not be used to claim groundnut coverage.
+- The API refuses to invent a diagnosis when the pretrained model cannot load or is uncertain.
 - Camera access on production requires HTTPS.

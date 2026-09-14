@@ -8,6 +8,30 @@ import CameraScanner from './components/CameraScanner';
 import { AuthProvider, useAuth } from './context/AuthContext';
 import { ANDHRA_PRADESH, ANDHRA_PRADESH_DISTRICTS, ANDHRA_PRADESH_LOCATIONS } from './data/andhraPradeshLocations';
 
+const TELUGU_DIAGNOSIS = {
+  Apple: 'ఆపిల్',
+  Tomato: 'టమాటా',
+  Potato: 'బంగాళాదుంప',
+  Groundnut: 'వేరుశెనగ',
+  'Corn (maize)': 'మొక్కజొన్న',
+  Grape: 'ద్రాక్ష',
+  'Pepper, bell': 'క్యాప్సికమ్',
+  'Early blight': 'ఎర్లీ బ్లైట్ (ఆకు మచ్చ తెగులు)',
+  'Late blight': 'లేట్ బ్లైట్ తెగులు',
+  'Tikka leaf spot': 'టిక్కా ఆకు మచ్చ తెగులు',
+  Rust: 'తుప్పు తెగులు',
+  'Bacterial spot': 'బ్యాక్టీరియా మచ్చ తెగులు',
+  'Powdery mildew': 'బూజు తెగులు',
+  'Apple scab': 'ఆపిల్ స్కాబ్ తెగులు',
+  'Leaf Mold': 'ఆకు బూజు తెగులు',
+  Healthy: 'ఆరోగ్యంగా ఉంది',
+  Uncertain: 'నిర్ధారణ కాలేదు',
+};
+
+const translateDiagnosis = (value, language) => (
+  language === 'te' ? TELUGU_DIAGNOSIS[value] || value : value
+);
+
 function LandingPage() {
   return (
     <div className="page-shell">
@@ -242,6 +266,7 @@ function DashboardPage() {
   const [scanRecommendation, setScanRecommendation] = useState(null);
   const [diseaseFile, setDiseaseFile] = useState(null);
   const [diseaseError, setDiseaseError] = useState('');
+  const [diagnosisLanguage, setDiagnosisLanguage] = useState('en');
   const [error, setError] = useState('');
   const [loadingAction, setLoadingAction] = useState('');
 
@@ -355,7 +380,7 @@ function DashboardPage() {
     } catch (err) {
       const apiCode = err.response?.data?.code;
       const message = apiCode === 'MODEL_NOT_CONFIGURED'
-        ? 'Disease model is not installed. Add disease_model.keras to backend/ml_models/disease_model, then restart the backend.'
+        ? 'Disease model is not configured. Set PLANT_ID_API_KEY on the backend, then restart the backend.'
         : err.response?.data?.error
         || err.response?.data?.message
         || (err.code === 'ECONNABORTED'
@@ -515,7 +540,14 @@ function DashboardPage() {
 
         <form className="card form-card" onSubmit={handleDiseaseSubmit}>
           <h3>Disease scanner</h3>
-          <p>Upload a clear leaf image. The trained model identifies the crop and disease automatically.</p>
+          <p>Upload a clear leaf image. The configured AI provider identifies the crop and disease automatically.</p>
+          <label>
+            Result language
+            <select value={diagnosisLanguage} onChange={(event) => setDiagnosisLanguage(event.target.value)}>
+              <option value="en">English</option>
+              <option value="te">తెలుగు (Telugu)</option>
+            </select>
+          </label>
           <CameraScanner
             onCapture={(file) => {
               setDiseaseError('');
@@ -528,21 +560,21 @@ function DashboardPage() {
           <button className="primary-button" type="submit" disabled={loadingAction === 'disease'}>{loadingAction === 'disease' ? 'Scanning...' : 'Scan disease'}</button>
           {diseaseResult && (
             <div className="result-box">
-              <h4>Scan result</h4>
-              <p><strong>Crop:</strong> {diseaseResult.crop}</p>
-              <p><strong>Disease:</strong> {diseaseResult.disease}</p>
-              <p><strong>Confidence:</strong> {diseaseResult.confidence}</p>
-              <p><strong>Severity:</strong> {diseaseResult.severity}</p>
+              <h4>{diagnosisLanguage === 'te' ? 'స్కాన్ ఫలితం' : 'Scan result'}</h4>
+              <p><strong>{diagnosisLanguage === 'te' ? 'పంట:' : 'Crop:'}</strong> {translateDiagnosis(diseaseResult.crop, diagnosisLanguage)}</p>
+              <p><strong>{diagnosisLanguage === 'te' ? 'వ్యాధి:' : 'Disease:'}</strong> {translateDiagnosis(diseaseResult.disease, diagnosisLanguage)}</p>
+              <p><strong>{diagnosisLanguage === 'te' ? 'నమ్మక స్థాయి:' : 'Confidence:'}</strong> {diseaseResult.confidence}</p>
+              <p><strong>{diagnosisLanguage === 'te' ? 'తీవ్రత:' : 'Severity:'}</strong> {translateDiagnosis(diseaseResult.severity, diagnosisLanguage)}</p>
               <div className="treatment-list">
-                <h4>Pesticides for {diseaseResult.disease.replaceAll('_', ' ')}</h4>
+                <h4>{diagnosisLanguage === 'te' ? 'ఈ వ్యాధికి మందులు:' : 'Pesticides for'} {translateDiagnosis(diseaseResult.disease.replaceAll('_', ' '), diagnosisLanguage)}</h4>
                 {diseaseResult.treatments?.length > 0 ? diseaseResult.treatments.map((treatment) => (
                   <div className="treatment-item" key={`${treatment.active_ingredient}-${treatment.product_name}`}>
                     <strong>{treatment.product_name}</strong>
-                    <span>Active ingredient: {treatment.active_ingredient}</span>
+                    <span>{diagnosisLanguage === 'te' ? 'క్రియాశీల పదార్థం:' : 'Active ingredient:'} {treatment.active_ingredient}</span>
                     <small>{treatment.application_guidance}</small>
                   </div>
-                )) : <p>No pesticide information is available for this disease yet. Consult your local agriculture officer.</p>}
-                {diseaseResult.treatments?.length > 0 && <small className="treatment-warning">Verify the product label and local agricultural guidance before spraying.</small>}
+                )) : <p>{diagnosisLanguage === 'te' ? 'ఈ వ్యాధికి పురుగుమందు సమాచారం అందుబాటులో లేదు. స్థానిక వ్యవసాయ అధికారిని సంప్రదించండి.' : 'No pesticide information is available for this disease yet. Consult your local agriculture officer.'}</p>}
+                {diseaseResult.treatments?.length > 0 && <small className="treatment-warning">{diagnosisLanguage === 'te' ? 'పిచికారీ చేయడానికి ముందు ఉత్పత్తి లేబుల్ మరియు స్థానిక వ్యవసాయ సూచనలను తప్పక పరిశీలించండి.' : 'Verify the product label and local agricultural guidance before spraying.'}</small>}
               </div>
             </div>
           )}

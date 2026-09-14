@@ -9,3 +9,5 @@ Werkzeug
 requests
 numpy
 Pillow
+torch
+transformers
