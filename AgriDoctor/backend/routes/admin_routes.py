@@ -1,6 +1,7 @@
 from flask import Blueprint, jsonify
 from ..utils.auth import admin_required
 from ..models.user import User
+from ..models.farmer import Farmer
 from ..models.disease_prediction import DiseasePrediction
 from ..models.disease import Disease
 from ..models.treatment import Treatment
@@ -32,19 +33,22 @@ def dashboard():
 @admin_bp.route("/farmers", methods=["GET"])
 @admin_required
 def farmers():
-    rows = User.query.order_by(User.created_at.desc()).all()
+    rows = Farmer.query.join(User).order_by(User.created_at.desc()).all()
     return jsonify({"farmers": [{
-        "id": user.id,
-        "name": user.name,
-        "email": user.email,
-        "mobile_number": user.mobile_number,
-        "role": user.role,
-        "state": user.state,
-        "district": user.district,
-        "village": user.village,
-        "farm_area": user.farm_area,
-        "created_at": user.created_at.isoformat() if user.created_at else None,
-    } for user in rows]})
+        "id": farmer.id,
+        "user_id": farmer.user.id,
+        "name": farmer.user.name,
+        "email": farmer.user.email,
+        "mobile_number": farmer.user.mobile_number,
+        "role": farmer.user.role,
+        "state": farmer.user.state,
+        "district": farmer.district or farmer.user.district,
+        "village": farmer.village or farmer.user.village,
+        "farm_area": farmer.user.farm_area,
+        "latitude": farmer.latitude,
+        "longitude": farmer.longitude,
+        "created_at": farmer.created_at.isoformat() if farmer.created_at else None,
+    } for farmer in rows]})
 
 
 @admin_bp.route("/diseases", methods=["GET"])

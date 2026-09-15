@@ -40,8 +40,12 @@ def update_profile():
         user.state = data["state"]
     if data.get("district"):
         user.district = data["district"]
+        if user.farmer_profile:
+            user.farmer_profile.district = data["district"]
     if data.get("village"):
         user.village = data["village"]
+        if user.farmer_profile:
+            user.farmer_profile.village = data["village"]
     if data.get("farm_area"):
         user.farm_area = float(data["farm_area"])
     db.session.commit()
