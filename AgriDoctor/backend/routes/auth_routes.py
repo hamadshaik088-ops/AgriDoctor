@@ -4,7 +4,7 @@ from sqlalchemy.exc import IntegrityError, SQLAlchemyError
 from ..database.db import db
 from ..models.user import User
 from ..models.farmer import Farmer
-from ..utils.validation import validate_email, error_response
+from ..utils.validation import validate_email, validate_mobile_number, error_response
 
 auth_bp = Blueprint("auth", __name__)
 
@@ -20,6 +20,8 @@ def register():
         return error_response(f"Missing required fields: {', '.join(missing)}")
     if not validate_email(email):
         return error_response("Invalid email format")
+    if not validate_mobile_number(mobile_number):
+        return error_response("Mobile number must be exactly 10 digits and start with 6-9")
     if len(str(data["password"])) < 8:
         return error_response("Password must be at least 8 characters")
     try:
