@@ -7,13 +7,22 @@ from time import monotonic
 class DiseasePredictor:
     def __init__(self):
         self.plant_id_api_key = os.getenv("PLANT_ID_API_KEY", "").strip()
+        self.allow_model_download = os.getenv("ALLOW_MODEL_DOWNLOAD", "0").lower() in {"1", "true", "yes"}
         self.provider = "plant_id" if self.plant_id_api_key else "huggingface"
         self.model_id = os.getenv(
             "DISEASE_MODEL_ID",
             "linkanjarad/mobilenet_v2_1.0_224-plant-disease-identification",
         )
         self.model_load_error = None
-        self.processor, self.model, self.class_names = self._load_model() if self.provider == "huggingface" else (None, None, [])
+        local_model_available = Path(self.model_id).exists()
+        if self.provider == "huggingface" and not self.allow_model_download and not local_model_available:
+            self.model_load_error = (
+                "No local disease model is configured. Set PLANT_ID_API_KEY, "
+                "deploy the Hugging Face model files, or set ALLOW_MODEL_DOWNLOAD=1."
+            )
+            self.processor, self.model, self.class_names = None, None, []
+        else:
+            self.processor, self.model, self.class_names = self._load_model() if self.provider == "huggingface" else (None, None, [])
         self.confidence_threshold = float(os.getenv("MODEL_CONFIDENCE_THRESHOLD", "0.35"))
 
     def _load_model(self):
@@ -24,8 +33,9 @@ class DiseasePredictor:
             self.model_load_error = "The transformers package is not installed in the API environment."
             return None, None, []
         try:
-            processor = AutoImageProcessor.from_pretrained(self.model_id)
-            model = AutoModelForImageClassification.from_pretrained(self.model_id)
+            model_options = {} if self.allow_model_download else {"local_files_only": True}
+            processor = AutoImageProcessor.from_pretrained(self.model_id, **model_options)
+            model = AutoModelForImageClassification.from_pretrained(self.model_id, **model_options)
             model.eval()
             class_names = [model.config.id2label[index] for index in range(model.config.num_labels)]
             return processor, model, class_names
