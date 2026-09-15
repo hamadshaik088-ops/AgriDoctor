@@ -357,11 +357,7 @@ function DashboardPage() {
     try {
       const formData = new FormData();
       formData.append('image', diseaseFile);
-      const response = await api.post('/disease/predict', formData, {
-        headers: {
-          'Content-Type': 'multipart/form-data',
-        },
-      });
+      const response = await api.post('/disease/predict', formData);
       const prediction = response.data.result;
       setDiseaseResult(prediction);
       setDashboard((current) => ({ ...current, disease_risk: prediction.weather_risk }));
@@ -400,8 +396,8 @@ function DashboardPage() {
         || (err.code === 'ECONNABORTED'
           ? 'The disease service is waking up. Please try again.'
           : err.response
-            ? `Disease scan failed (HTTP ${err.response.status}).`
-            : 'Cannot reach the disease service.');
+            ? `Disease scan failed (HTTP ${err.response.status}). Please try again.`
+            : 'Cannot reach the disease service. Please try again after the API wakes up.');
       setDiseaseError(message);
       setError(message);
     } finally {
