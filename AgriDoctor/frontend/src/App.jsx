@@ -361,6 +361,7 @@ function DashboardPage() {
       const prediction = response.data.result;
       setDiseaseResult(prediction);
       setDashboard((current) => ({ ...current, disease_risk: prediction.weather_risk }));
+      setLoadingAction('');
 
       const coordinates = await new Promise((resolve) => {
         if (!navigator.geolocation) {

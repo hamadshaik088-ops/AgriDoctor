@@ -56,6 +56,8 @@ def update_profile():
 @jwt_required()
 def dashboard():
     user = User.query.get(get_jwt_identity())
+    if not user:
+        return jsonify({"error": "User not found"}), 401
     return jsonify({
         "welcome": f"Welcome {user.name} 👨‍🌾",
         "weather": None,

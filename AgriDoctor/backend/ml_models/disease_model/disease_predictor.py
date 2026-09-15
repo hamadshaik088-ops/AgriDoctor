@@ -1,6 +1,7 @@
 import os
 import base64
 from pathlib import Path
+from time import monotonic
 
 
 class DiseasePredictor:
@@ -16,6 +17,7 @@ class DiseasePredictor:
         self.confidence_threshold = float(os.getenv("MODEL_CONFIDENCE_THRESHOLD", "0.35"))
 
     def _load_model(self):
+        started_at = monotonic()
         try:
             from transformers import AutoImageProcessor, AutoModelForImageClassification
         except ImportError:
@@ -30,6 +32,13 @@ class DiseasePredictor:
         except Exception as exc:
             self.model_load_error = f"Could not load pretrained model '{self.model_id}': {exc}"
             return None, None, []
+        finally:
+            load_seconds = monotonic() - started_at
+            if load_seconds > 30:
+                self.model_load_error = (
+                    self.model_load_error
+                    or f"Model loading took {load_seconds:.0f} seconds. Configure a cached model for faster scans."
+                )
 
     def _model_unavailable(self):
         detail = self.model_load_error or "The pretrained disease model could not be loaded."
@@ -70,7 +79,7 @@ class DiseasePredictor:
                 "language": "en",
                 "details": ["local_name", "description", "treatment", "common_names"],
             },
-            timeout=45,
+            timeout=(5, 20),
         )
         if response.status_code >= 400:
             raise RuntimeError(f"Plant.id returned HTTP {response.status_code}: {response.text[:300]}")
