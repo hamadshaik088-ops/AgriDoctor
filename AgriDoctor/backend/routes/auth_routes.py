@@ -65,13 +65,16 @@ def register():
 @auth_bp.route("/login", methods=["POST"])
 def login():
     data = request.get_json(silent=True) or {}
-    email = str(data.get("email", "")).strip().lower()
+    identifier = str(data.get("identifier", data.get("email", ""))).strip()
     password = data.get("password")
-    if not email or not password:
-        return error_response("Email and password are required")
-    user = User.query.filter_by(email=email).first()
+    if not identifier or not password:
+        return error_response("Email or mobile number and password are required")
+    email = identifier.lower()
+    user = User.query.filter(
+        db.or_(User.email == email, User.mobile_number == identifier)
+    ).first()
     if not user or not user.check_password(password):
-        return error_response("Invalid email or password", 401)
+        return error_response("Invalid email/mobile number or password", 401)
     token = create_access_token(identity=str(user.id))
     return jsonify({"message": "Login successful", "token": token, "user": {"id": user.id, "email": user.email, "name": user.name, "role": user.role}})
 

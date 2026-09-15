@@ -70,7 +70,7 @@ function LandingPage() {
 
 function LoginPage() {
   const { login } = useAuth();
-  const [form, setForm] = useState({ email: '', password: '' });
+  const [form, setForm] = useState({ identifier: '', password: '' });
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
 
@@ -86,8 +86,8 @@ function LoginPage() {
 
     try {
       const response = await api.post('/auth/login', {
-        ...form,
-        email: form.email.trim().toLowerCase(),
+        identifier: form.identifier.trim(),
+        password: form.password,
       });
       const { token, user } = response.data;
       login(user, token);
@@ -105,8 +105,8 @@ function LoginPage() {
         <h2>Login</h2>
         {error && <div className="error-box">{error}</div>}
         <label>
-          Email
-          <input name="email" type="email" value={form.email} onChange={handleChange} required />
+          Email or mobile number
+          <input name="identifier" type="text" value={form.identifier} onChange={handleChange} required />
         </label>
         <label>
           Password
