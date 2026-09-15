@@ -156,10 +156,24 @@ function RegisterPage() {
     setLoading(true);
 
     try {
-      const response = await api.post('/auth/register', {
+      const registrationData = {
         ...form,
         farm_area: Number(form.farm_area),
-      });
+      };
+      let response;
+
+      for (let attempt = 0; attempt < 2; attempt += 1) {
+        try {
+          response = await api.post('/auth/register', registrationData);
+          break;
+        } catch (requestError) {
+          const status = requestError.response?.status;
+          const isTransient = !requestError.response || [502, 503, 504].includes(status);
+          if (!isTransient || attempt === 1) throw requestError;
+          await new Promise((resolve) => window.setTimeout(resolve, 1500));
+        }
+      }
+
       const { token, user } = response.data;
       login(user, token);
       window.location.href = '/';
@@ -168,8 +182,8 @@ function RegisterPage() {
         err.response?.data?.error
         || err.response?.data?.message
         || (err.code === 'ECONNABORTED'
-          ? 'The server is waking up. Please try registration again in a moment.'
-          : 'Unable to connect to the registration server.'),
+          ? 'The server is waking up. Please try again in a moment.'
+          : 'Registration server is unreachable. Check the deployed API URL and try again.'),
       );
     } finally {
       setLoading(false);
