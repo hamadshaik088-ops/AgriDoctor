@@ -451,6 +451,8 @@ function DashboardPage() {
               <div className="insight-panel">
                 <h4>Disease and pesticides</h4>
                 <p><strong>Severity:</strong> {diseaseResult.severity}</p>
+                {diseaseResult.model_provider && <p><strong>Model:</strong> {diseaseResult.model_provider}</p>}
+                {diseaseResult.model_coverage && <p><strong>Coverage:</strong> {diseaseResult.model_coverage}</p>}
                 {diseaseResult.treatments?.map((treatment) => (
                   <p key={`${treatment.active_ingredient}-${treatment.product_name}`}>
                     <strong>{treatment.product_name}</strong><br />{treatment.active_ingredient}

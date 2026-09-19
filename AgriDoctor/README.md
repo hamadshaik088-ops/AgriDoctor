@@ -91,7 +91,7 @@ python app.py
 
 This model uses the PlantVillage 38-class label set. It includes tomato and potato, but not groundnut/peanut. The repository contains no locally trained weights or training dataset. Configure `DISEASE_MODEL_ID` only when selecting another compatible pretrained image-classification model.
 
-For broad crop and disease coverage, configure the official Plant.id v3 provider instead. It supports plant health assessment across hundreds of conditions and returns disease treatment details, including chemical guidance when available:
+For broad crop and disease coverage, configure the official Plant.id v3 provider instead. The Plant.id service documents support for more than 35,000 plant taxa and 548 plant-health conditions, and returns disease treatment details, including chemical guidance when available. This is broad coverage, not a guarantee for every crop or disease:
 
 ```powershell
 $env:PLANT_ID_API_KEY = "your-api-key"
@@ -101,6 +101,8 @@ python app.py
 The API key is read only from the environment and must not be committed. Plant.id requires an account and usage credits.
 
 Pesticide suggestions are returned only for explicit crop-disease mappings in `backend/services/treatment_service.py`. Unsupported, healthy, viral, and uncertain results return no pesticide recommendation. A genuine all-crop system still requires a verified broader disease model or separate specialist models; the available pretrained model must not be presented as groundnut or all-crop coverage.
+
+The application selects Plant.id automatically when `PLANT_ID_API_KEY` is set. Without that key, the optional Hugging Face fallback is limited to the PlantVillage 38-class label set. Never enable the fallback and describe it as all-crop coverage. Product approval, dosage, protective equipment, and pre-harvest interval must be verified against the current Indian product label before spraying.
 
 ## Notes
 - The pretrained model is PlantVillage-based and does not include groundnut/peanut. It must not be used to claim groundnut coverage.

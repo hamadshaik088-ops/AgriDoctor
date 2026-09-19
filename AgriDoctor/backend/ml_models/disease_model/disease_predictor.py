@@ -25,6 +25,21 @@ class DiseasePredictor:
             self.processor, self.model, self.class_names = self._load_model() if self.provider == "huggingface" else (None, None, [])
         self.confidence_threshold = float(os.getenv("MODEL_CONFIDENCE_THRESHOLD", "0.35"))
 
+    def _with_model_metadata(self, result):
+        if getattr(self, "provider", "huggingface") == "plant_id":
+            result.update({
+                "model_provider": "Plant.id",
+                "model_coverage": "Broad plant identification and plant-health assessment; coverage is not universal.",
+                "treatments_source": "Plant.id treatment details; verify current Indian registration and label directions.",
+            })
+        else:
+            result.update({
+                "model_provider": "Hugging Face PlantVillage classifier",
+                "model_coverage": "PlantVillage 38-class label set; this is not an all-crop model.",
+                "treatments_source": "Explicit crop-disease mappings only; no pesticide is suggested for unsupported results.",
+            })
+        return result
+
     def _load_model(self):
         started_at = monotonic()
         try:
@@ -58,7 +73,7 @@ class DiseasePredictor:
         )
 
     def _uncertain_prediction(self, confidence):
-        return {
+        return self._with_model_metadata({
             "crop": "Unknown",
             "disease": "Uncertain",
             "confidence": f"{confidence * 100:.1f}%",
@@ -70,7 +85,7 @@ class DiseasePredictor:
             "weather_risk": "UNKNOWN",
             "is_demo": False,
             "message": "The model was uncertain. No crop or disease was assigned.",
-        }
+        })
 
     def _plant_id_prediction(self, image_path):
         try:
@@ -138,7 +153,7 @@ class DiseasePredictor:
                 "last_updated": "2026-01-15",
             })
         healthy = payload.get("is_healthy", {}).get("binary", False)
-        return {
+        return self._with_model_metadata({
             "crop": crop,
             "disease": "Healthy" if healthy else disease,
             "confidence": f"{confidence * 100:.1f}%",
@@ -151,7 +166,7 @@ class DiseasePredictor:
             "weather_risk": "LOW" if healthy else "MEDIUM",
             "is_demo": False,
             "message": "Plant.id AI result. Verify diagnosis and product approval with a local agricultural expert before spraying.",
-        }
+        })
 
     def predict(self, image_path):
         if getattr(self, "provider", "huggingface") == "plant_id":
@@ -186,7 +201,7 @@ class DiseasePredictor:
 
         disease_label = disease.replace("_", " ")
         healthy = "healthy" in disease.lower()
-        return {
+        return self._with_model_metadata({
             "crop": crop,
             "disease": disease_label,
             "confidence": f"{confidence * 100:.1f}%",
@@ -198,4 +213,4 @@ class DiseasePredictor:
             "weather_risk": "LOW" if healthy else "MEDIUM",
             "is_demo": False,
             "message": "AI result. Verify the diagnosis and product label with a local agricultural expert before spraying."
-        }
+        })

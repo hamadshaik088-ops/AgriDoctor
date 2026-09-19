@@ -9,6 +9,23 @@ from ..services.notification_service import create_notification
 farmer_bp = Blueprint("farmer", __name__)
 
 
+def serialize_farm(farm):
+    return {
+        "id": farm.id,
+        "farm_name": farm.farm_name,
+        "location": farm.location,
+        "state": farm.state,
+        "district": farm.district,
+        "village": farm.village,
+        "area": farm.area,
+        "soil_type": farm.soil_type,
+        "irrigation_type": farm.irrigation_type,
+        "current_crop": farm.current_crop,
+        "latitude": farm.latitude,
+        "longitude": farm.longitude,
+    }
+
+
 @farmer_bp.route("/profile", methods=["GET"])
 @jwt_required()
 def profile():
@@ -137,7 +154,7 @@ def create_farm():
     db.session.add(farm)
     db.session.commit()
     create_notification(farmer, "Farm profile created", "Your farm profile was saved successfully.", "info")
-    return jsonify({"message": "Farm saved", "farm": farm.__dict__}), 201
+    return jsonify({"message": "Farm saved", "farm": serialize_farm(farm)}), 201
 
 
 @farmer_bp.route("/farm", methods=["GET"])
@@ -177,4 +194,4 @@ def update_farm():
         if key in data:
             setattr(farm, key, data[key])
     db.session.commit()
-    return jsonify({"message": "Farm updated", "farm": farm.__dict__})
+    return jsonify({"message": "Farm updated", "farm": serialize_farm(farm)})
