@@ -31,6 +31,8 @@ class Config:
     ALLOWED_EXTENSIONS = {ext.strip().lower() for ext in os.getenv("ALLOWED_EXTENSIONS", "jpg,jpeg,png,webp").split(",") if ext.strip()}
     WEATHER_API_KEY = os.getenv("WEATHER_API_KEY", "")
     PLANT_ID_API_KEY = os.getenv("PLANT_ID_API_KEY", "")
+    PLANT_ID_API_URL = os.getenv("PLANT_ID_API_URL", "https://api.plant.id/v3/identification").strip()
+    PLANT_ID_HEALTH = os.getenv("PLANT_ID_HEALTH", "all").strip() or "all"
     MODEL_CONFIDENCE_THRESHOLD = float(os.getenv("MODEL_CONFIDENCE_THRESHOLD", "0.35"))
 
 

@@ -7,6 +7,8 @@ from time import monotonic
 class DiseasePredictor:
     def __init__(self):
         self.plant_id_api_key = os.getenv("PLANT_ID_API_KEY", "").strip()
+        self.plant_id_api_url = os.getenv("PLANT_ID_API_URL", "https://api.plant.id/v3/identification").strip()
+        self.plant_id_health = os.getenv("PLANT_ID_HEALTH", "all").strip() or "all"
         self.allow_model_download = os.getenv("ALLOW_MODEL_DOWNLOAD", "0").lower() in {"1", "true", "yes"}
         self.provider = "plant_id" if self.plant_id_api_key else "huggingface"
         self.model_id = os.getenv(
@@ -29,6 +31,7 @@ class DiseasePredictor:
         if getattr(self, "provider", "huggingface") == "plant_id":
             result.update({
                 "model_provider": "Plant.id",
+                "model_version": "Plant.id API v3 with plant.health",
                 "model_coverage": "Broad plant identification and plant-health assessment; coverage is not universal.",
                 "treatments_source": "Plant.id treatment details; verify current Indian registration and label directions.",
             })
@@ -95,11 +98,11 @@ class DiseasePredictor:
 
         image_data = base64.b64encode(Path(image_path).read_bytes()).decode("ascii")
         response = requests.post(
-            "https://api.plant.id/v3/identification",
+            self.plant_id_api_url,
             headers={"Api-Key": self.plant_id_api_key, "Content-Type": "application/json"},
             json={
                 "images": [image_data],
-                "health": "all",
+                "health": self.plant_id_health,
                 "similar_images": False,
                 "language": "en",
                 "details": ["local_name", "description", "treatment", "common_names"],
