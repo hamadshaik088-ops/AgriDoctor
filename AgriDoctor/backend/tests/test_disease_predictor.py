@@ -28,6 +28,33 @@ class DummyProcessor:
 
 
 class DiseasePredictorPreprocessingTest(unittest.TestCase):
+    def test_plant_id_returns_healthy_when_no_disease_suggestion_exists(self):
+        class Response:
+            status_code = 200
+
+            def json(self):
+                return {"result": {
+                    "classification": {"suggestions": [{"name": "Tomato", "probability": 0.92}]},
+                    "disease": {"suggestions": []},
+                    "is_healthy": {"binary": True, "probability": 0.88},
+                }}
+
+        predictor = DiseasePredictor.__new__(DiseasePredictor)
+        predictor.plant_id_api_key = "test-key"
+        predictor.plant_id_api_url = "https://api.plant.id/v3/identification"
+        predictor.plant_id_health = "all"
+        predictor.provider = "plant_id"
+
+        with tempfile.TemporaryDirectory() as tmpdir:
+            image_path = Path(tmpdir) / "leaf.jpg"
+            image_path.write_bytes(b"image")
+            with patch("requests.post", return_value=Response()):
+                result = predictor._plant_id_prediction(str(image_path))
+
+        self.assertEqual(result["crop"], "Tomato")
+        self.assertEqual(result["disease"], "Healthy")
+        self.assertEqual(result["treatments"], [])
+
     def test_plant_id_v3_request_uses_query_options(self):
         class Response:
             status_code = 200

@@ -113,12 +113,46 @@ class DiseasePredictor:
         payload = response.json().get("result", {})
         classification = payload.get("classification", {}).get("suggestions", [])
         disease_suggestions = payload.get("disease", {}).get("suggestions", [])
-        if not classification or not disease_suggestions:
-            raise RuntimeError("Plant.id could not identify a crop and disease from this image.")
+        if not classification:
+            raise RuntimeError("Plant.id could not identify a crop from this image. Use a clear photo showing one plant or leaf.")
 
         crop_result = max(classification, key=lambda item: item.get("probability", 0))
-        disease_result = max(disease_suggestions, key=lambda item: item.get("probability", 0))
         crop = crop_result.get("name", "Unknown")
+        if not disease_suggestions:
+            healthy_result = payload.get("is_healthy") or {}
+            healthy = bool(healthy_result.get("binary"))
+            healthy_confidence = float(healthy_result.get("probability", crop_result.get("probability", 0)))
+            if not healthy:
+                return self._with_model_metadata({
+                    "crop": crop,
+                    "disease": "Uncertain",
+                    "confidence": f"{healthy_confidence * 100:.1f}%",
+                    "severity": "Unknown",
+                    "symptoms": "No specific health condition was returned for this image.",
+                    "causes": "The image needs field confirmation before a cause can be assigned.",
+                    "management": "Capture one close, well-lit image of an affected leaf and consult an agricultural expert.",
+                    "treatment": "Do not spray based on this result.",
+                    "treatments": [],
+                    "weather_risk": "UNKNOWN",
+                    "is_demo": False,
+                    "message": "The crop was identified, but Plant.id did not return a specific disease.",
+                })
+            return self._with_model_metadata({
+                "crop": crop,
+                "disease": "Healthy",
+                "confidence": f"{healthy_confidence * 100:.1f}%",
+                "severity": "Healthy",
+                "symptoms": "No disease symptoms detected.",
+                "causes": "No disease causes apply to a healthy result.",
+                "management": "Continue monitoring the crop and maintain normal field care.",
+                "treatment": "No pesticide is recommended for a healthy crop.",
+                "treatments": [],
+                "weather_risk": "LOW",
+                "is_demo": False,
+                "message": "Plant.id identified the crop and found no specific health condition.",
+            })
+
+        disease_result = max(disease_suggestions, key=lambda item: item.get("probability", 0))
         disease = disease_result.get("name", "Uncertain")
         confidence = float(disease_result.get("probability", 0))
         details = disease_result.get("details") or {}
