@@ -64,11 +64,14 @@ npm install
 npm run dev
 ```
 
-The frontend uses `http://localhost:5000/api` by default. If port 5173 is busy, Vite will select the next available port and print its URL.
+The frontend uses `http://localhost:5001/api` in Vite development mode, matching the local Flask backend. If port 5173 is busy, Vite will select the next available port and print its URL.
 
 ## Environment variables
 Backend uses .env for secrets. Frontend uses VITE_API_BASE_URL in frontend/.env.
 
+For a local PostgreSQL database, create `backend/.env` and add a `DATABASE_URL`
+using the PostgreSQL connection URL shown by pgAdmin. Without this variable,
+the backend intentionally uses `backend/instance/agridoctor.db` (SQLite).
 For the Render backend, add a `DATABASE_URL` environment variable using the
 PostgreSQL database's **External Database URL**. Do not commit the URL or its
 password. The backend also accepts Render's legacy `postgres://` URL format.
