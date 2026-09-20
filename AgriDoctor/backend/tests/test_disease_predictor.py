@@ -114,6 +114,30 @@ class DiseasePredictorPreprocessingTest(unittest.TestCase):
             with self.assertRaisesRegex(RuntimeError, "pretrained disease model is unavailable"):
                 predictor.predict(str(image_path))
 
+    def test_plant_id_rejects_non_plant_images(self):
+        class Response:
+            status_code = 200
+
+            def json(self):
+                return {"result": {
+                    "classification": {"suggestions": [{"name": "Laptop", "probability": 0.92}]},
+                    "disease": {"suggestions": []},
+                    "is_healthy": {"binary": False, "probability": 0.2},
+                }}
+
+        predictor = DiseasePredictor.__new__(DiseasePredictor)
+        predictor.plant_id_api_key = "test-key"
+        predictor.plant_id_api_url = "https://api.plant.id/v3/identification"
+        predictor.plant_id_health = "all"
+        predictor.provider = "plant_id"
+
+        with tempfile.TemporaryDirectory() as tmpdir:
+            image_path = Path(tmpdir) / "laptop.jpg"
+            image_path.write_bytes(b"image")
+            with patch("requests.post", return_value=Response()):
+                with self.assertRaisesRegex(RuntimeError, "NON_PLANT_IMAGE"):
+                    predictor._plant_id_prediction(str(image_path))
+
 
 if __name__ == "__main__":
     unittest.main()

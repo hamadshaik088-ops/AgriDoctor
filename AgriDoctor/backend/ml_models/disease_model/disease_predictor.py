@@ -90,6 +90,18 @@ class DiseasePredictor:
             "message": "The model was uncertain. No crop or disease was assigned.",
         })
 
+    @staticmethod
+    def _is_non_plant_image_name(name):
+        text = " ".join(str(name).lower().replace("_", " ").split())
+        if not text:
+            return False
+        non_plant_keywords = (
+            "laptop", "computer", "keyboard", "monitor", "screen", "phone", "mobile", "tablet",
+            "camera", "person", "face", "building", "car", "chair", "table", "shoe", "watch",
+            "bottle", "book", "cup", "bag", "road", "wall"
+        )
+        return any(keyword in text for keyword in non_plant_keywords)
+
     def _plant_id_prediction(self, image_path, expected_crop=None):
         try:
             import requests
@@ -118,6 +130,11 @@ class DiseasePredictor:
 
         crop_result = max(classification, key=lambda item: item.get("probability", 0))
         crop = crop_result.get("name", "Unknown")
+        if self._is_non_plant_image_name(crop):
+            raise RuntimeError(
+                "NON_PLANT_IMAGE: This image does not look like a crop or plant leaf. "
+                "Upload a clear photo of a crop leaf, plant, or field to scan for disease."
+            )
         if expected_crop and not self._crop_matches(crop, expected_crop):
             raise RuntimeError(
                 f"CROP_MISMATCH: The image appears to show {crop}, not {expected_crop}. "

@@ -32,6 +32,8 @@ def predict():
     except RuntimeError as exc:
         if str(exc).startswith("CROP_MISMATCH:"):
             return jsonify({"error": str(exc).removeprefix("CROP_MISMATCH: ").strip(), "code": "CROP_MISMATCH"}), 422
+        if str(exc).startswith("NON_PLANT_IMAGE:"):
+            return jsonify({"error": str(exc).removeprefix("NON_PLANT_IMAGE: ").strip(), "code": "NON_PLANT_IMAGE"}), 422
         error_code = "MODEL_NOT_CONFIGURED" if "pretrained disease model is unavailable" in str(exc) else "MODEL_INFERENCE_FAILED"
         return jsonify({
             "error": str(exc),

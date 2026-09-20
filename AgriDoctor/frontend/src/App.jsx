@@ -394,6 +394,8 @@ function DashboardPage() {
       const apiCode = err.response?.data?.code;
       const message = apiCode === 'CROP_MISMATCH'
         ? `${err.response?.data?.error} Check that the photo contains one clear leaf of the selected crop.`
+        : apiCode === 'NON_PLANT_IMAGE'
+        ? `${err.response?.data?.error} Upload a photo of a crop leaf or plant, not a laptop, phone, or other object.`
         : apiCode === 'MODEL_NOT_CONFIGURED'
         ? 'Disease model is not configured. Set PLANT_ID_API_KEY on the backend, then restart the backend.'
         : err.response?.data?.error
