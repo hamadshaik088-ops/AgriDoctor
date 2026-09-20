@@ -279,6 +279,7 @@ function DashboardPage() {
   const [weatherResult, setWeatherResult] = useState(null);
   const [scanRecommendation, setScanRecommendation] = useState(null);
   const [diseaseFile, setDiseaseFile] = useState(null);
+  const [expectedCrop, setExpectedCrop] = useState('');
   const [diseaseError, setDiseaseError] = useState('');
   const [diagnosisLanguage, setDiagnosisLanguage] = useState('en');
   const [error, setError] = useState('');
@@ -357,6 +358,7 @@ function DashboardPage() {
     try {
       const formData = new FormData();
       formData.append('image', diseaseFile);
+      if (expectedCrop) formData.append('expected_crop', expectedCrop);
       const response = await api.post('/disease/predict', formData);
       const prediction = response.data.result;
       setDiseaseResult(prediction);
@@ -390,7 +392,9 @@ function DashboardPage() {
       setDashboard((current) => ({ ...current, weather }));
     } catch (err) {
       const apiCode = err.response?.data?.code;
-      const message = apiCode === 'MODEL_NOT_CONFIGURED'
+      const message = apiCode === 'CROP_MISMATCH'
+        ? `${err.response?.data?.error} Check that the photo contains one clear leaf of the selected crop.`
+        : apiCode === 'MODEL_NOT_CONFIGURED'
         ? 'Disease model is not configured. Set PLANT_ID_API_KEY on the backend, then restart the backend.'
         : err.response?.data?.error
         || err.response?.data?.message
@@ -559,6 +563,18 @@ function DashboardPage() {
             <select value={diagnosisLanguage} onChange={(event) => setDiagnosisLanguage(event.target.value)}>
               <option value="en">English</option>
               <option value="te">తెలుగు (Telugu)</option>
+            </select>
+          </label>
+          <label>
+            Expected crop (optional)
+            <select value={expectedCrop} onChange={(event) => setExpectedCrop(event.target.value)}>
+              <option value="">Let AI identify the crop</option>
+              <option value="tomato">Tomato</option>
+              <option value="groundnut">Groundnut / Peanut</option>
+              <option value="potato">Potato</option>
+              <option value="apple">Apple</option>
+              <option value="corn">Corn / Maize</option>
+              <option value="grape">Grape</option>
             </select>
           </label>
           <CameraScanner

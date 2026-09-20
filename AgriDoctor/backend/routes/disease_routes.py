@@ -25,10 +25,13 @@ def predict():
         return jsonify({"error": str(exc)}), 400
 
     try:
-        prediction = predict_disease_from_image(filepath)
+        expected_crop = request.form.get("expected_crop", "").strip() or None
+        prediction = predict_disease_from_image(filepath, expected_crop=expected_crop)
     except (OSError, ValueError) as exc:
         return jsonify({"error": "The uploaded file is not a valid readable image.", "message": str(exc)}), 400
     except RuntimeError as exc:
+        if str(exc).startswith("CROP_MISMATCH:"):
+            return jsonify({"error": str(exc).removeprefix("CROP_MISMATCH: ").strip(), "code": "CROP_MISMATCH"}), 422
         error_code = "MODEL_NOT_CONFIGURED" if "pretrained disease model is unavailable" in str(exc) else "MODEL_INFERENCE_FAILED"
         return jsonify({
             "error": str(exc),

@@ -90,7 +90,7 @@ class DiseasePredictor:
             "message": "The model was uncertain. No crop or disease was assigned.",
         })
 
-    def _plant_id_prediction(self, image_path):
+    def _plant_id_prediction(self, image_path, expected_crop=None):
         try:
             import requests
         except ImportError as exc:
@@ -118,6 +118,11 @@ class DiseasePredictor:
 
         crop_result = max(classification, key=lambda item: item.get("probability", 0))
         crop = crop_result.get("name", "Unknown")
+        if expected_crop and not self._crop_matches(crop, expected_crop):
+            raise RuntimeError(
+                f"CROP_MISMATCH: The image appears to show {crop}, not {expected_crop}. "
+                "Upload a clear image of the selected crop or choose the detected crop."
+            )
         if not disease_suggestions:
             healthy_result = payload.get("is_healthy") or {}
             healthy = bool(healthy_result.get("binary"))
@@ -204,9 +209,24 @@ class DiseasePredictor:
             "message": "Plant.id AI result. Verify diagnosis and product approval with a local agricultural expert before spraying.",
         })
 
-    def predict(self, image_path):
+    @staticmethod
+    def _crop_matches(detected_crop, expected_crop):
+        aliases = {
+            "tomato": {"tomato", "solanum lycopersicum"},
+            "groundnut": {"groundnut", "peanut", "arachis hypogaea"},
+            "potato": {"potato", "solanum tuberosum"},
+            "apple": {"apple", "malus domestica"},
+            "corn": {"corn", "maize", "zea mays"},
+            "grape": {"grape", "vitis vinifera"},
+        }
+        expected = " ".join(str(expected_crop).lower().replace("_", " ").split())
+        detected = " ".join(str(detected_crop).lower().replace("_", " ").split())
+        accepted = aliases.get(expected, {expected})
+        return detected in accepted or any(value in detected for value in accepted)
+
+    def predict(self, image_path, expected_crop=None):
         if getattr(self, "provider", "huggingface") == "plant_id":
-            return self._plant_id_prediction(image_path)
+            return self._plant_id_prediction(image_path, expected_crop=expected_crop)
         if self.model is None or self.processor is None:
             self._model_unavailable()
 
