@@ -99,14 +99,13 @@ class DiseasePredictor:
         image_data = base64.b64encode(Path(image_path).read_bytes()).decode("ascii")
         response = requests.post(
             self.plant_id_api_url,
-            headers={"Api-Key": self.plant_id_api_key, "Content-Type": "application/json"},
-            json={
-                "images": [image_data],
+            params={
+                "details": "local_name,description,treatment,common_names",
                 "health": self.plant_id_health,
-                "similar_images": False,
-                "language": "en",
-                "details": ["local_name", "description", "treatment", "common_names"],
+                "similar_images": "false",
             },
+            headers={"Api-Key": self.plant_id_api_key, "Content-Type": "application/json"},
+            json={"images": [image_data]},
             timeout=(5, 20),
         )
         if response.status_code >= 400:

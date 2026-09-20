@@ -1,6 +1,7 @@
 import tempfile
 import unittest
 from pathlib import Path
+from unittest.mock import patch
 
 import numpy as np
 from PIL import Image
@@ -27,6 +28,33 @@ class DummyProcessor:
 
 
 class DiseasePredictorPreprocessingTest(unittest.TestCase):
+    def test_plant_id_v3_request_uses_query_options(self):
+        class Response:
+            status_code = 200
+
+            def json(self):
+                return {"result": {
+                    "classification": {"suggestions": [{"name": "Tomato", "probability": 0.9}]},
+                    "disease": {"suggestions": [{"name": "Early blight", "probability": 0.9, "details": {}}]},
+                    "is_healthy": {"binary": False},
+                }}
+
+        predictor = DiseasePredictor.__new__(DiseasePredictor)
+        predictor.plant_id_api_key = "test-key"
+        predictor.plant_id_api_url = "https://api.plant.id/v3/identification"
+        predictor.plant_id_health = "all"
+        predictor.provider = "plant_id"
+
+        with tempfile.TemporaryDirectory() as tmpdir:
+            image_path = Path(tmpdir) / "leaf.jpg"
+            image_path.write_bytes(b"image")
+            with patch("requests.post", return_value=Response()) as post:
+                predictor._plant_id_prediction(str(image_path))
+
+        self.assertEqual(post.call_args.kwargs["json"], {"images": ["aW1hZ2U="]})
+        self.assertEqual(post.call_args.kwargs["params"]["health"], "all")
+        self.assertEqual(post.call_args.kwargs["params"]["similar_images"], "false")
+
     def test_predict_uses_pretrained_model_labels(self):
         predictor = DiseasePredictor.__new__(DiseasePredictor)
         predictor.processor = DummyProcessor()
