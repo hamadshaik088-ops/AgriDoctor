@@ -15,3 +15,7 @@ services:
         value: "86400"
       - key: FLASK_DEBUG
         value: "0"
+      - key: PLANT_ID_API_KEY
+        sync: false
+      - key: PLANT_ID_HEALTH
+        value: "all"

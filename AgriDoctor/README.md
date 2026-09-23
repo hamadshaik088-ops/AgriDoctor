@@ -84,7 +84,16 @@ notifications, diseases, and treatments. Registration and all farmer data
 endpoints use the JWT returned by `/api/auth/register` or `/api/auth/login`.
 
 ### Disease model
-Without a provider key, the scanner can use the pretrained Hugging Face development fallback `linkanjarad/mobilenet_v2_1.0_224-plant-disease-identification`. Install the API requirements and start Flask; Transformers downloads the model on its first prediction:
+Production should use the single universal Plant.id provider. Add `PLANT_ID_API_KEY` to the Render service environment; the application selects Plant.id automatically and requests its complete plant-health assessment:
+
+```text
+PLANT_ID_API_KEY=your-api-key
+PLANT_ID_HEALTH=all
+```
+
+Plant.id is one provider for many crops and diseases; the application does not need a separate model per crop. Its coverage is broad but not literally guaranteed for every disease, so the result must still be confirmed locally.
+
+Without a provider key, the scanner can use the limited Hugging Face development fallback `linkanjarad/mobilenet_v2_1.0_224-plant-disease-identification`. Install the API requirements and start Flask; Transformers downloads the model on its first prediction:
 
 ```powershell
 cd backend
@@ -94,7 +103,7 @@ python app.py
 
 This model uses the PlantVillage 38-class label set. It includes tomato and potato, but not rice/false smut or groundnut/peanut. The repository contains no locally trained weights or training dataset. Configure `DISEASE_MODEL_ID` only when selecting another compatible pretrained image-classification model. Selecting Rice in the scanner does not add rice recognition to this fallback; it makes the API reject unrelated fallback labels instead of showing a misleading crop.
 
-For the EOSDA image labelled rice false smut, configure the official Plant.id v3 provider or a rice-trained model through `DISEASE_MODEL_ID`. Plant.id documents support for more than 35,000 plant taxa and 548 plant-health conditions, and returns disease treatment details, including chemical guidance when available. This is broad coverage, not a guarantee for every crop or disease:
+For broad crop coverage, configure the official Plant.id v3 provider. Plant.id documents support for more than 35,000 plant taxa and 548 plant-health conditions, and returns disease treatment details, including chemical guidance when available. This is broad coverage, not a guarantee for every crop or disease:
 
 ```powershell
 $env:PLANT_ID_API_KEY = "your-api-key"
