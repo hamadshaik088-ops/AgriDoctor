@@ -10,6 +10,8 @@ def predict_disease_from_image(image_path, expected_crop=None):
         disease_predictor = DiseasePredictor()
 
     prediction = disease_predictor.predict(image_path, expected_crop=expected_crop)
-    if "treatments" not in prediction:
+    if not prediction.get("treatments") and prediction.get("disease", "").strip().lower() not in {"uncertain", "healthy"}:
         prediction["treatments"] = get_treatments_for_disease(prediction["crop"], prediction["disease"])
+    elif "treatments" not in prediction:
+        prediction["treatments"] = []
     return prediction

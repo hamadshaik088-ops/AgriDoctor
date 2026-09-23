@@ -124,7 +124,11 @@ class DiseasePredictor:
             raise RuntimeError(f"Plant.id returned HTTP {response.status_code}: {response.text[:300]}")
         payload = response.json().get("result", {})
         classification = payload.get("classification", {}).get("suggestions", [])
-        disease_suggestions = payload.get("disease", {}).get("suggestions", [])
+        health_assessment = payload.get("health_assessment") or {}
+        disease_suggestions = (
+            health_assessment.get("diseases")
+            or payload.get("disease", {}).get("suggestions", [])
+        )
         if not classification:
             raise RuntimeError("Plant.id could not identify a crop from this image. Use a clear photo showing one plant or leaf.")
 
@@ -141,7 +145,11 @@ class DiseasePredictor:
                 "Upload a clear image of the selected crop or choose the detected crop."
             )
         if not disease_suggestions:
-            healthy_result = payload.get("is_healthy") or {}
+            healthy_result = (
+                health_assessment.get("is_healthy")
+                or payload.get("is_healthy")
+                or {}
+            )
             healthy = bool(healthy_result.get("binary"))
             healthy_confidence = float(healthy_result.get("probability", crop_result.get("probability", 0)))
             if not healthy:
@@ -210,7 +218,12 @@ class DiseasePredictor:
                 "source": "Plant.id expert-compiled disease treatment guidance",
                 "last_updated": "2026-01-15",
             })
-        healthy = payload.get("is_healthy", {}).get("binary", False)
+        healthy_result = (
+            health_assessment.get("is_healthy")
+            or payload.get("is_healthy")
+            or {}
+        )
+        healthy = healthy_result.get("binary", False)
         return self._with_model_metadata({
             "crop": crop,
             "disease": "Healthy" if healthy else disease,

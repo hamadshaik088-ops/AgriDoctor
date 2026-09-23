@@ -94,8 +94,23 @@ def _normalize_name(value):
     return " ".join(value.strip().lower().replace("_", " ").replace("-", " ").replace("/", " ").split())
 
 
+def _normalize_crop(value):
+    crop_name = _normalize_name(value)
+    aliases = {
+        "solanum lycopersicum": "tomato",
+        "solanum tuberosum": "potato",
+        "malus domestica": "apple",
+        "arachis hypogaea": "groundnut",
+        "peanut": "groundnut",
+        "zea mays": "corn (maize)",
+        "maize": "corn (maize)",
+        "vitis vinifera": "grape",
+    }
+    return aliases.get(crop_name, crop_name)
+
+
 def get_treatments_for_disease(crop, disease_name):
-    crop_name = _normalize_name(crop)
+    crop_name = _normalize_crop(crop)
     disease_key = _normalize_name(disease_name)
 
     exact = (crop_name, disease_key)
@@ -109,6 +124,16 @@ def get_treatments_for_disease(crop, disease_name):
             ):
                 treatments = items
                 break
+        if treatments is None:
+            disease_without_crop = disease_key.removeprefix(f"{crop_name} ")
+            for (crop_key, disease_label), items in TREATMENTS.items():
+                if crop_key == crop_name and (
+                    disease_without_crop == disease_label
+                    or disease_without_crop in disease_label
+                    or disease_label in disease_without_crop
+                ):
+                    treatments = items
+                    break
         if treatments is None:
             return []
 

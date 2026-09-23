@@ -1,4 +1,4 @@
-import { BrowserRouter, Navigate, Route, Routes } from 'react-router-dom';
+import { BrowserRouter, Navigate, Route, Routes, useNavigate } from 'react-router-dom';
 import { useEffect, useState } from 'react';
 import api from './services/api';
 import Navbar from './components/Navbar';
@@ -70,6 +70,7 @@ function LandingPage() {
 
 function LoginPage() {
   const { login } = useAuth();
+  const navigate = useNavigate();
   const [form, setForm] = useState({ identifier: '', password: '' });
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
@@ -91,7 +92,7 @@ function LoginPage() {
       });
       const { token, user } = response.data;
       login(user, token);
-      window.location.href = '/dashboard';
+      navigate('/dashboard', { replace: true });
     } catch (err) {
       setError(err.response?.data?.error || err.response?.data?.message || 'Login failed. Register an account first or check your credentials.');
     } finally {
@@ -122,6 +123,7 @@ function LoginPage() {
 
 function RegisterPage() {
   const { login } = useAuth();
+  const navigate = useNavigate();
   const [form, setForm] = useState({
     name: '',
     mobile_number: '',
@@ -176,7 +178,7 @@ function RegisterPage() {
 
       const { token, user } = response.data;
       login(user, token);
-      window.location.href = '/';
+      navigate('/dashboard', { replace: true });
     } catch (err) {
       setError(
         err.response?.data?.error

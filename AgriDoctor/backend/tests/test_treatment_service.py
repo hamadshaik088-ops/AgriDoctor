@@ -17,6 +17,12 @@ class TreatmentServiceTest(unittest.TestCase):
     def test_viral_disease_has_no_pesticide_recommendation(self):
         self.assertEqual(get_treatments_for_disease("Tomato", "Tomato mosaic virus"), [])
 
+    def test_provider_crop_alias_matches_local_treatment_catalog(self):
+        treatments = get_treatments_for_disease("Solanum lycopersicum", "Tomato early blight")
+
+        self.assertTrue(treatments)
+        self.assertEqual(treatments[0]["active_ingredient"], "Mancozeb 75% WP")
+
 
 if __name__ == "__main__":
     unittest.main()
