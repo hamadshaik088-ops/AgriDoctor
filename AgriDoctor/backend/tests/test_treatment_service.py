@@ -23,6 +23,14 @@ class TreatmentServiceTest(unittest.TestCase):
         self.assertTrue(treatments)
         self.assertEqual(treatments[0]["active_ingredient"], "Mancozeb 75% WP")
 
+    def test_rice_false_smut_has_treatment_options(self):
+        treatments = get_treatments_for_disease("Oryza sativa", "False smut")
+
+        self.assertEqual(
+            [item["active_ingredient"] for item in treatments],
+            ["Propiconazole 25% EC", "Tebuconazole 25.9% EC", "Azoxystrobin 23% SC"],
+        )
+
 
 if __name__ == "__main__":
     unittest.main()

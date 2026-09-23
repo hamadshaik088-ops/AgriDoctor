@@ -87,6 +87,11 @@ TREATMENTS = {
         ("Mancozeb 75% WP", "Dithane M-45 or equivalent registered product"),
         ("Tebuconazole 25.9% EC", "Folicur or equivalent registered product"),
     ],
+    ("rice", "false smut"): [
+        ("Propiconazole 25% EC", "Tilt or equivalent registered product"),
+        ("Tebuconazole 25.9% EC", "Folicur or equivalent registered product"),
+        ("Azoxystrobin 23% SC", "Amistar or equivalent registered product"),
+    ],
 }
 
 
@@ -102,6 +107,8 @@ def _normalize_crop(value):
         "malus domestica": "apple",
         "arachis hypogaea": "groundnut",
         "peanut": "groundnut",
+        "oryza sativa": "rice",
+        "paddy": "rice",
         "zea mays": "corn (maize)",
         "maize": "corn (maize)",
         "vitis vinifera": "grape",

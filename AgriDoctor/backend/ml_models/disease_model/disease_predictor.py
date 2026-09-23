@@ -244,6 +244,7 @@ class DiseasePredictor:
         aliases = {
             "tomato": {"tomato", "solanum lycopersicum"},
             "groundnut": {"groundnut", "peanut", "arachis hypogaea"},
+            "rice": {"rice", "paddy", "oryza sativa"},
             "potato": {"potato", "solanum tuberosum"},
             "apple": {"apple", "malus domestica"},
             "corn": {"corn", "maize", "zea mays"},
@@ -284,6 +285,12 @@ class DiseasePredictor:
             crop, disease = class_name.split("___", 1)
         else:
             crop, disease = "Tomato", class_name
+
+        if expected_crop and not self._crop_matches(crop, expected_crop):
+            raise RuntimeError(
+                f"CROP_MISMATCH: The fallback model detected {crop}, not {expected_crop}. "
+                "This model does not support the selected crop; configure Plant.id or a compatible crop-specific model."
+            )
 
         disease_label = disease.replace("_", " ")
         healthy = "healthy" in disease.lower()

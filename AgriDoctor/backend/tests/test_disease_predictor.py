@@ -132,6 +132,20 @@ class DiseasePredictorPreprocessingTest(unittest.TestCase):
         self.assertEqual(result["disease"], "Early blight")
         self.assertGreater(float(result["confidence"].rstrip("%")), 35.0)
 
+    def test_predict_rejects_fallback_label_for_selected_crop(self):
+        predictor = DiseasePredictor.__new__(DiseasePredictor)
+        predictor.processor = DummyProcessor()
+        predictor.model = DummyModel()
+        predictor.class_names = ["Apple___healthy", "Tomato___Early_blight"]
+        predictor.confidence_threshold = 0.35
+
+        with tempfile.TemporaryDirectory() as tmpdir:
+            image_path = Path(tmpdir) / "rice.jpg"
+            Image.new("RGB", (224, 224), color=(255, 255, 255)).save(image_path)
+
+            with self.assertRaisesRegex(RuntimeError, "CROP_MISMATCH"):
+                predictor.predict(str(image_path), expected_crop="rice")
+
     def test_predict_refuses_to_invent_disease_when_model_missing(self):
         predictor = DiseasePredictor.__new__(DiseasePredictor)
         predictor.processor = None

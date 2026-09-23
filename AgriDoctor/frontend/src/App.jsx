@@ -13,6 +13,7 @@ const TELUGU_DIAGNOSIS = {
   Tomato: 'టమాటా',
   Potato: 'బంగాళాదుంప',
   Groundnut: 'వేరుశెనగ',
+  Rice: 'వరి',
   'Corn (maize)': 'మొక్కజొన్న',
   Grape: 'ద్రాక్ష',
   'Pepper, bell': 'క్యాప్సికమ్',
@@ -23,6 +24,7 @@ const TELUGU_DIAGNOSIS = {
   'Bacterial spot': 'బ్యాక్టీరియా మచ్చ తెగులు',
   'Powdery mildew': 'బూజు తెగులు',
   'Apple scab': 'ఆపిల్ స్కాబ్ తెగులు',
+  'False smut': 'ఫాల్స్ స్మట్ తెగులు',
   'Leaf Mold': 'ఆకు బూజు తెగులు',
   Healthy: 'ఆరోగ్యంగా ఉంది',
   Uncertain: 'నిర్ధారణ కాలేదు',
@@ -575,6 +577,7 @@ function DashboardPage() {
               <option value="">Let AI identify the crop</option>
               <option value="tomato">Tomato</option>
               <option value="groundnut">Groundnut / Peanut</option>
+              <option value="rice">Rice / Paddy</option>
               <option value="potato">Potato</option>
               <option value="apple">Apple</option>
               <option value="corn">Corn / Maize</option>
