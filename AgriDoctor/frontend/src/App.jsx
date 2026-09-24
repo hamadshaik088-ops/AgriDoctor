@@ -405,10 +405,10 @@ function DashboardPage() {
         : err.response?.data?.error
         || err.response?.data?.message
         || (err.code === 'ECONNABORTED'
-          ? 'The disease service is waking up. Please try again.'
+          ? 'The disease model is still loading. Please wait a moment and scan again.'
           : err.response
             ? `Disease scan failed (HTTP ${err.response.status}). Please try again.`
-            : 'Cannot reach the disease service. Please try again after the API wakes up.');
+            : 'Cannot reach the disease service. Please try again in a moment.');
       setDiseaseError(message);
       setError(message);
     } finally {

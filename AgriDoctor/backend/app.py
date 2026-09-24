@@ -60,6 +60,11 @@ def create_app():
     register_blueprints(app)
     with app.app_context():
         db.create_all()
+        try:
+            from .ml_models.disease_model.disease_predictor import DiseasePredictor
+            DiseasePredictor()
+        except Exception:
+            pass
 
     @app.get("/")
     def service_info():
