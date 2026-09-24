@@ -28,6 +28,21 @@ class DummyProcessor:
 
 
 class DiseasePredictorPreprocessingTest(unittest.TestCase):
+    def test_predict_brightens_a_dark_image_before_processing(self):
+        predictor = DiseasePredictor.__new__(DiseasePredictor)
+        predictor.processor = DummyProcessor()
+        predictor.model = DummyModel()
+        predictor.class_names = ["Apple___healthy", "Tomato___Early_blight"]
+        predictor.confidence_threshold = 0.35
+
+        with tempfile.TemporaryDirectory() as tmpdir:
+            image_path = Path(tmpdir) / "dark-leaf.jpg"
+            Image.new("RGB", (224, 224), color=(20, 20, 20)).save(image_path)
+
+            predictor.predict(str(image_path))
+
+        self.assertGreater(np.asarray(predictor.processor.last_image).mean(), 20)
+
     def test_plant_id_returns_healthy_when_no_disease_suggestion_exists(self):
         class Response:
             status_code = 200

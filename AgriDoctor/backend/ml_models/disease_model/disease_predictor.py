@@ -1,5 +1,6 @@
 import os
 import base64
+from io import BytesIO
 from pathlib import Path
 from time import monotonic
 
@@ -102,13 +103,32 @@ class DiseasePredictor:
         )
         return any(keyword in text for keyword in non_plant_keywords)
 
+    @staticmethod
+    def _enhance_for_inference(image_path):
+        original_bytes = Path(image_path).read_bytes()
+        try:
+            from PIL import Image, ImageEnhance, ImageOps, ImageStat
+
+            image = Image.open(BytesIO(original_bytes)).convert("RGB")
+            grayscale = ImageOps.grayscale(image)
+            mean_brightness = ImageStat.Stat(grayscale).mean[0]
+            if mean_brightness < 105:
+                image = ImageEnhance.Brightness(image).enhance(min(1.8, 105 / max(mean_brightness, 1)))
+            image = ImageOps.autocontrast(image, cutoff=1)
+            output = BytesIO()
+            image.save(output, format="JPEG", quality=95)
+            return image, output.getvalue()
+        except (OSError, ValueError):
+            return None, original_bytes
+
     def _plant_id_prediction(self, image_path, expected_crop=None):
         try:
             import requests
         except ImportError as exc:
             raise RuntimeError("The requests package is required for Plant.id inference.") from exc
 
-        image_data = base64.b64encode(Path(image_path).read_bytes()).decode("ascii")
+        _, image_bytes = self._enhance_for_inference(image_path)
+        image_data = base64.b64encode(image_bytes).decode("ascii")
         response = requests.post(
             self.plant_id_api_url,
             params={
@@ -268,7 +288,9 @@ class DiseasePredictor:
         except ImportError as exc:
             raise RuntimeError("Pillow, NumPy, PyTorch, and Transformers are required for disease inference.") from exc
 
-        image = Image.open(image_path).convert("RGB")
+        image, _ = self._enhance_for_inference(image_path)
+        if image is None:
+            raise ValueError("The uploaded image could not be decoded.")
         processed = self.processor(images=image, return_tensors="pt")
         with torch.no_grad():
             logits = self.model(**processed).logits
@@ -303,6 +325,7 @@ class DiseasePredictor:
             "causes": "No disease causes apply to a healthy result." if healthy else "Confirm the diagnosis with an agricultural expert before treatment.",
             "management": "Continue monitoring the crop." if healthy else "Remove severely affected material and follow verified crop-specific guidance.",
             "treatment": "No pesticide is recommended for a healthy crop." if healthy else "Use only a registered product listed for this crop and disease.",
+            "treatments": [],
             "weather_risk": "LOW" if healthy else "MEDIUM",
             "is_demo": False,
             "message": "AI result. Verify the diagnosis and product label with a local agricultural expert before spraying."
