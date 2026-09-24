@@ -200,6 +200,32 @@ class DiseasePredictorPreprocessingTest(unittest.TestCase):
                 with self.assertRaisesRegex(RuntimeError, "NON_PLANT_IMAGE"):
                     predictor._plant_id_prediction(str(image_path))
 
+    def test_plant_id_429_uses_crop_specific_fallback(self):
+        class Response:
+            status_code = 429
+            text = '{"error":"insufficient credits"}'
+
+        predictor = DiseasePredictor.__new__(DiseasePredictor)
+        predictor.plant_id_api_key = "test-key"
+        predictor.plant_id_api_url = "https://api.plant.id/v3/identification"
+        predictor.plant_id_health = "all"
+        predictor.provider = "plant_id"
+        predictor.processor = DummyProcessor()
+        predictor.model = DummyModel()
+        predictor.class_names = ["Apple___healthy", "Tomato___Early_blight"]
+        predictor.model_load_error = None
+        predictor.confidence_threshold = 0.35
+
+        with tempfile.TemporaryDirectory() as tmpdir:
+            image_path = Path(tmpdir) / "tomato-leaf.jpg"
+            Image.new("RGB", (224, 224), color=(50, 100, 80)).save(image_path)
+            with patch("requests.post", return_value=Response()):
+                result = predictor.predict(str(image_path), expected_crop="tomato")
+
+        self.assertEqual(result["crop"], "Tomato")
+        self.assertEqual(result["disease"], "Early blight")
+        self.assertTrue(result["treatments"] or result["treatment"])
+
 
 if __name__ == "__main__":
     unittest.main()

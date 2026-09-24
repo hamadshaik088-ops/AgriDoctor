@@ -10,7 +10,7 @@ class DiseasePredictor:
         self.plant_id_api_key = os.getenv("PLANT_ID_API_KEY", "").strip()
         self.plant_id_api_url = os.getenv("PLANT_ID_API_URL", "https://api.plant.id/v3/identification").strip()
         self.plant_id_health = os.getenv("PLANT_ID_HEALTH", "all").strip() or "all"
-        self.allow_model_download = os.getenv("ALLOW_MODEL_DOWNLOAD", "0").lower() in {"1", "true", "yes"}
+        self.allow_model_download = os.getenv("ALLOW_MODEL_DOWNLOAD", "1").lower() in {"1", "true", "yes"}
         self.provider = "plant_id" if self.plant_id_api_key else "huggingface"
         self.model_id = os.getenv(
             "DISEASE_MODEL_ID",
@@ -141,7 +141,10 @@ class DiseasePredictor:
             timeout=(5, 20),
         )
         if response.status_code >= 400:
-            raise RuntimeError(f"Plant.id returned HTTP {response.status_code}: {response.text[:300]}")
+            message = response.text[:300] if hasattr(response, "text") else str(response)
+            if "insufficient" in message.lower() or "credit" in message.lower() or "quota" in message.lower() or "429" in str(response.status_code):
+                raise RuntimeError("PLANT_ID_CREDITS_EXHAUSTED: Plant.id credits are exhausted or rate-limited. Falling back to the local model when available.")
+            raise RuntimeError(f"Plant.id returned HTTP {response.status_code}: {message}")
         payload = response.json().get("result", {})
         classification = payload.get("classification", {}).get("suggestions", [])
         health_assessment = payload.get("health_assessment") or {}
@@ -275,9 +278,7 @@ class DiseasePredictor:
         accepted = aliases.get(expected, {expected})
         return detected in accepted or any(value in detected for value in accepted)
 
-    def predict(self, image_path, expected_crop=None):
-        if getattr(self, "provider", "huggingface") == "plant_id":
-            return self._plant_id_prediction(image_path, expected_crop=expected_crop)
+    def _local_fallback_prediction(self, image_path, expected_crop=None):
         if self.model is None or self.processor is None:
             self._model_unavailable()
 
@@ -330,3 +331,18 @@ class DiseasePredictor:
             "is_demo": False,
             "message": "AI result. Verify the diagnosis and product label with a local agricultural expert before spraying."
         })
+
+    def predict(self, image_path, expected_crop=None):
+        if getattr(self, "provider", "huggingface") == "plant_id":
+            try:
+                return self._plant_id_prediction(image_path, expected_crop=expected_crop)
+            except RuntimeError as exc:
+                message = str(exc)
+                if "PLANT_ID_CREDITS_EXHAUSTED" in message or "insufficient" in message.lower() or "credit" in message.lower() or "quota" in message.lower() or "429" in message:
+                    if self.model is not None and self.processor is not None:
+                        return self._local_fallback_prediction(image_path, expected_crop=expected_crop)
+                    raise
+                raise
+        if self.model is None or self.processor is None:
+            self._model_unavailable()
+        return self._local_fallback_prediction(image_path, expected_crop=expected_crop)

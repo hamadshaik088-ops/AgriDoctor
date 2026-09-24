@@ -92,6 +92,102 @@ TREATMENTS = {
         ("Tebuconazole 25.9% EC", "Folicur or equivalent registered product"),
         ("Azoxystrobin 23% SC", "Amistar or equivalent registered product"),
     ],
+    ("rice", "leaf blast"): [
+        ("Tricyclazole 75% WP", "Beam or equivalent registered product"),
+        ("Isoprothiolane 40% EC", "Registered equivalent product"),
+    ],
+    ("rice", "brown spot"): [
+        ("Mancozeb 75% WP", "Dithane M-45 or equivalent registered product"),
+        ("Propiconazole 25% EC", "Tilt or equivalent registered product"),
+    ],
+    ("rice", "bacterial blight"): [
+        ("Copper oxychloride 50% WP", "Blitox or equivalent registered product"),
+        ("Streptomycin sulfate", "Registered equivalent product"),
+    ],
+    ("wheat", "leaf rust"): [
+        ("Tebuconazole 25.9% EC", "Folicur or equivalent registered product"),
+        ("Propiconazole 25% EC", "Tilt or equivalent registered product"),
+    ],
+    ("wheat", "powdery mildew"): [
+        ("Sulfur 80% WP", "Registered equivalent product"),
+        ("Tebuconazole 25.9% EC", "Folicur or equivalent registered product"),
+    ],
+    ("banana", "sigatoka"): [
+        ("Mancozeb 75% WP", "Registered equivalent product"),
+        ("Copper oxychloride 50% WP", "Registered equivalent product"),
+    ],
+    ("banana", "fusarium wilt"): [
+        ("Carbendazim 50% WP", "Registered equivalent product"),
+    ],
+    ("cotton", "bacterial blight"): [
+        ("Copper oxychloride 50% WP", "Blitox or equivalent registered product"),
+    ],
+    ("cotton", "fusarium wilt"): [
+        ("Carbendazim 50% WP", "Registered equivalent product"),
+    ],
+    ("chilli", "anthracnose"): [
+        ("Mancozeb 75% WP", "Dithane M-45 or equivalent registered product"),
+        ("Copper oxychloride 50% WP", "Blitox or equivalent registered product"),
+    ],
+    ("chilli", "leaf curl"): [],
+    ("soybean", "rust"): [
+        ("Tebuconazole 25.9% EC", "Folicur or equivalent registered product"),
+        ("Mancozeb 75% WP", "Dithane M-45 or equivalent registered product"),
+    ],
+    ("soybean", "powdery mildew"): [
+        ("Sulfur 80% WP", "Registered equivalent product"),
+    ],
+    ("sugarcane", "red rot"): [
+        ("Carbendazim 50% WP", "Registered equivalent product"),
+    ],
+    ("sugarcane", "rust"): [
+        ("Mancozeb 75% WP", "Dithane M-45 or equivalent registered product"),
+    ],
+}
+
+GENERIC_DISEASE_TREATMENTS = {
+    "rust": [
+        ("Tebuconazole 25.9% EC", "Folicur or equivalent registered product"),
+        ("Mancozeb 75% WP", "Dithane M-45 or equivalent registered product"),
+    ],
+    "blight": [
+        ("Mancozeb 75% WP", "Dithane M-45 or equivalent registered product"),
+        ("Copper oxychloride 50% WP", "Blitox or equivalent registered product"),
+    ],
+    "leaf spot": [
+        ("Mancozeb 75% WP", "Dithane M-45 or equivalent registered product"),
+        ("Chlorothalonil 75% WP", "Kavach or equivalent registered product"),
+    ],
+    "powdery mildew": [
+        ("Sulfur 80% WP", "Registered equivalent product"),
+        ("Tebuconazole 25.9% EC", "Folicur or equivalent registered product"),
+    ],
+    "downy mildew": [
+        ("Mancozeb 75% WP", "Dithane M-45 or equivalent registered product"),
+        ("Copper oxychloride 50% WP", "Blitox or equivalent registered product"),
+    ],
+    "bacterial spot": [
+        ("Copper oxychloride 50% WP", "Blitox or equivalent registered product"),
+    ],
+    "bacterial blight": [
+        ("Copper oxychloride 50% WP", "Blitox or equivalent registered product"),
+        ("Streptomycin sulfate", "Registered equivalent product"),
+    ],
+    "anthracnose": [
+        ("Mancozeb 75% WP", "Dithane M-45 or equivalent registered product"),
+        ("Copper oxychloride 50% WP", "Blitox or equivalent registered product"),
+    ],
+    "blast": [
+        ("Tricyclazole 75% WP", "Beam or equivalent registered product"),
+        ("Isoprothiolane 40% EC", "Registered equivalent product"),
+    ],
+    "smut": [
+        ("Propiconazole 25% EC", "Tilt or equivalent registered product"),
+        ("Azoxystrobin 23% SC", "Amistar or equivalent registered product"),
+    ],
+    "wilt": [
+        ("Carbendazim 50% WP", "Registered equivalent product"),
+    ],
 }
 
 
@@ -112,6 +208,21 @@ def _normalize_crop(value):
         "zea mays": "corn (maize)",
         "maize": "corn (maize)",
         "vitis vinifera": "grape",
+        "capsicum annuum": "chilli",
+        "chili": "chilli",
+        "chilli": "chilli",
+        "pepper": "chilli",
+        "bell pepper": "chilli",
+        "soybean": "soybean",
+        "glycine max": "soybean",
+        "banana": "banana",
+        "musa": "banana",
+        "wheat": "wheat",
+        "triticum": "wheat",
+        "cotton": "cotton",
+        "gossypium": "cotton",
+        "sugarcane": "sugarcane",
+        "saccharum officinarum": "sugarcane",
     }
     return aliases.get(crop_name, crop_name)
 
@@ -140,6 +251,11 @@ def get_treatments_for_disease(crop, disease_name):
                     or disease_label in disease_without_crop
                 ):
                     treatments = items
+                    break
+        if treatments is None:
+            for keyword, generic_items in GENERIC_DISEASE_TREATMENTS.items():
+                if keyword in disease_key:
+                    treatments = generic_items
                     break
         if treatments is None:
             return []
